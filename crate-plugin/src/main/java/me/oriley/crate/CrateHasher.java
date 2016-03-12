@@ -1,8 +1,9 @@
 package me.oriley.crate;
 
+import android.support.annotation.NonNull;
+
 import org.apache.commons.lang.StringUtils;
 
-import javax.annotation.Nonnull;
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -12,7 +13,7 @@ public final class CrateHasher {
     private static final String MD5 = "MD5";
 
     // http://stackoverflow.com/a/20814872/4516144
-    @Nonnull
+    @NonNull
     public static String getActualHash() {
 
         File currentJavaJarFile = new File(CrateHasher.class.getProtectionDomain().getCodeSource().getLocation().getPath());
@@ -40,7 +41,7 @@ public final class CrateHasher {
         return sb.toString();
     }
 
-    public static boolean isHashValid(@Nonnull File crateOutputFile, @Nonnull String currentHash) {
+    public static boolean isHashValid(@NonNull File crateOutputFile, @NonNull String currentHash) {
         if (StringUtils.isEmpty(currentHash)) {
             return false;
         }

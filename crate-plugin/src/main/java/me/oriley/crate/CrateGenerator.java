@@ -16,166 +16,90 @@
 
 package me.oriley.crate;
 
+import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterables;
+import com.squareup.javapoet.*;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
+import javax.lang.model.element.Modifier;
 import java.awt.*;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 import java.util.List;
 
 import static java.util.Locale.US;
+import static javax.lang.model.element.Modifier.*;
+import static me.oriley.crate.utils.JavaPoetUtils.*;
 import static org.apache.commons.lang.StringUtils.equalsIgnoreCase;
 
 public final class CrateGenerator {
 
     private static final String CRATE_HASH = CrateHasher.getActualHash();
 
+    private static final ClassName ASSETMANAGER_CLASS = ClassName.get("android.content.res", "AssetManager");
+    private static final ClassName CONTEXT_CLASS = ClassName.get("android.content", "Context");
+
     private static final String OTF_EXTENSION = "otf";
     private static final String TTF_EXTENSION = "ttf";
 
-    private static int sCurrentDepth;
-
-    public static void writeJava(@Nonnull String crateOutputFile,
-                                 @Nonnull String variantAssetDir,
-                                 @Nonnull String packageName) {
-        sCurrentDepth = 4;
-
-        File file = new File(variantAssetDir);
-        if (!file.exists() || !file.isDirectory()) {
+    public static void writeJava(@NonNull String baseOutputDir,
+                                 @NonNull String variantAssetDir,
+                                 @NonNull String packageName) {
+        File variantDir = new File(variantAssetDir);
+        if (!variantDir.exists() || !variantDir.isDirectory()) {
             return;
         }
 
-        File javaFile = new File(crateOutputFile);
-        if (javaFile.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            javaFile.delete();
-        }
-
-        //noinspection ResultOfMethodCallIgnored
-        javaFile.getParentFile().mkdirs();
-        if (!javaFile.getParentFile().exists() || !javaFile.getParentFile().isDirectory()) {
-            throw new IllegalStateException("Crate: Output dir for " + crateOutputFile + " does not exist!");
-        }
-
-        // TODO: Use JavaPoet?
-        PrintWriter writer = null;
         try {
-            writer = new PrintWriter(crateOutputFile, "UTF-8");
-            writer.println("// " + CRATE_HASH + " -- DO NOT EDIT THIS LINE\n");
-            writer.println("package " + packageName + ";\n");
-            writer.println("import android.content.Context;");
-            writer.println("import android.content.res.AssetManager;");
-            writer.println("import android.support.annotation.NonNull;");
-            writer.println("import android.support.annotation.Nullable;");
-            writer.println("import java.io.IOException;");
-            writer.println("import java.io.InputStream;");
-            writer.println("import java.util.Arrays;");
-            writer.println("import java.util.List;\n");
-
-            writer.println("@SuppressWarnings(\"unused\")");
-            writer.println("public final class Crate {\n");
-
-            writer.println("    @NonNull");
-            writer.println("    private final Context mContext;\n");
-
-            writer.println("    @Nullable");
-            writer.println("    private AssetManager mManager;\n");
-
-            writer.println("    public Crate(@NonNull Context context) {");
-            writer.println("        mContext = context.getApplicationContext();");
-            writer.println("    }\n");
-
-            writer.println("    @NonNull");
-            writer.println("    public InputStream get(@NonNull Asset asset) throws IOException {");
-            writer.println("        return getManager().open(asset.mPath);");
-            writer.println("    }\n");
-
-            writer.println("    @NonNull");
-            writer.println("    public InputStream get(@NonNull Asset asset, int mode) throws IOException {");
-            writer.println("        return getManager().open(asset.mPath, mode);");
-            writer.println("    }\n");
-
-            writer.println("    @NonNull");
-            writer.println("    private AssetManager getManager() {");
-            writer.println("        if (mManager == null) {");
-            writer.println("            mManager = mContext.getAssets();");
-            writer.println("        }");
-            writer.println("        return mManager;");
-            writer.println("    }\n");
-
-            writer.println("    @NonNull");
-            writer.println("    public void close() {");
-            writer.println("        if (mManager != null) {");
-            writer.println("            mManager.close();");
-            writer.println("            mManager = null;");
-            writer.println("        }");
-            writer.println("    }\n");
-
-            writer.println("    public static class Asset {\n");
-
-            writer.println("        @NonNull");
-            writer.println("        private final String mPath;\n");
-
-            writer.println("        @NonNull");
-            writer.println("        private final String mName;\n");
-
-            writer.println("        private Asset(@NonNull String path, @NonNull String name) {");
-            writer.println("            mPath = path;");
-            writer.println("            mName = name;");
-            writer.println("        }\n");
-
-            writer.println("        @NonNull");
-            writer.println("        public String getPath() {");
-            writer.println("            return mPath;");
-            writer.println("        }\n");
-
-            writer.println("        @NonNull");
-            writer.println("        public String getName() {");
-            writer.println("            return mName;");
-            writer.println("        }\n");
-            writer.println("    }\n");
-
-            writer.println("    public static final class FontAsset extends Asset {\n");
-
-            writer.println("        @NonNull");
-            writer.println("        private final String mFontName;\n");
-
-            writer.println("        private FontAsset(@NonNull String path, @NonNull String name, @NonNull String fontName) {");
-            writer.println("            super(path, name);");
-            writer.println("            mFontName = fontName;");
-            writer.println("        }\n");
-
-            writer.println("        @NonNull");
-            writer.println("        public String getFontName() {");
-            writer.println("            return mFontName;");
-            writer.println("        }\n");
-            writer.println("    }\n");
-
-            listFiles(writer, file, variantAssetDir, true);
-
-            writer.println("}");
+            brewJava(variantDir, variantAssetDir, packageName).writeTo(new File(baseOutputDir));
         } catch (IOException e) {
             e.printStackTrace();
-            throw new IllegalStateException("Crate: IOException when generating class");
-        } finally {
-            if (writer != null) {
-                writer.close();
-            }
+            throw new IllegalStateException("failed to generate java");
         }
     }
 
-    private static void listFiles(@Nonnull PrintWriter writer,
-                                  @Nonnull File directory,
-                                  @Nonnull String variantAssetDir,
+    @NonNull
+    private static JavaFile brewJava(@NonNull File variantDir,
+                                     @NonNull String variantAssetDir,
+                                     @NonNull String packageName) {
+
+        TypeSpec.Builder builder = TypeSpec.classBuilder("Crate")
+                .addModifiers(PUBLIC, FINAL)
+                .addType(createAssetClass())
+                .addType(createFontAssetClass())
+                .addAnnotation(createSuppressWarningAnnotation("unused"));
+
+        builder.addField(createField(CONTEXT_CLASS, false, PRIVATE, FINAL))
+                .addField(createField(ASSETMANAGER_CLASS, true, PRIVATE));
+
+        listFiles(builder, variantDir, variantAssetDir, true);
+
+        String asset = "asset";
+        TypeName assetType = TypeVariableName.get(Asset.getTypeName());
+        builder.addMethod(createCrateConstructor())
+                .addMethod(createInputStreamMethod(asset, assetType, false, PUBLIC))
+                .addMethod(createInputStreamMethod(asset, assetType, true, PUBLIC))
+                .addMethod(createGetManagerMethod())
+                .addMethod(createCloseManagerMethod());
+
+        return JavaFile.builder(packageName, builder.build())
+                .indent("    ")
+                .addFileComment(CRATE_HASH + " -- DO NOT EDIT THIS LINE")
+                .build();
+    }
+
+    private static void listFiles(@NonNull TypeSpec.Builder parentBuilder,
+                                  @NonNull File directory,
+                                  @NonNull String variantAssetDir,
                                   boolean root) {
-        if (!root) {
-            writer.println("" + getIndent() + "public static final class " + directory.getName() + " {\n");
-            sCurrentDepth += 4;
-        }
+
+        TypeSpec.Builder builder = root ? parentBuilder : TypeSpec.classBuilder(directory.getName())
+                .addModifiers(PUBLIC, STATIC, FINAL);
 
         List<File> files = getFileList(directory);
         List<Asset> assets = new ArrayList<>();
@@ -183,7 +107,7 @@ public final class CrateGenerator {
 
         for (File file : files) {
             if (file.isDirectory()) {
-                listFiles(writer, file, variantAssetDir, false);
+                listFiles(builder, file, variantAssetDir, false);
             } else {
                 String fileName = file.getName();
                 String assetName = sanitiseFilename(fileName).toUpperCase(US);
@@ -193,55 +117,191 @@ public final class CrateGenerator {
                 Asset asset;
                 if (equalsIgnoreCase(fileExtension, TTF_EXTENSION) || equalsIgnoreCase(fileExtension, OTF_EXTENSION)) {
                     String fontName = getFontName(file.getPath());
-                    asset = new FontAsset(filePath, assetName, fontName != null ? fontName : fileName);
+                    asset = new FontAsset(assetName, filePath, fileName, fontName != null ? fontName : fileName);
+                    builder.addField(createFontAssetField((FontAsset) asset));
                 } else {
                     isFontFolder = false;
-                    asset = new Asset(filePath, assetName);
+                    asset = new Asset(assetName, filePath, fileName);
+                    builder.addField(createAssetField(asset));
                 }
                 assets.add(asset);
-
-                String className = asset.getClass().getSimpleName();
-                String fontName = (asset instanceof FontAsset ? (", \"" + ((FontAsset) asset).getFontName() + "\"") : "");
-                writer.println(getIndent() + "public static final " + className + " " + assetName + " = new " +
-                        className + "(\"" + filePath + "\", \"" + fileName + "\"" + fontName + ");");
             }
         }
 
         if (!assets.isEmpty()) {
-            String listClass = isFontFolder ? "FontAsset" : "Asset";
-            writer.println("\n" + getIndent() + "public static final List<" + listClass +
-                    "> LIST = Arrays.asList(\n" + getIndent() + "        " +
-                    Joiner.on(",\n" + getIndent() + "        ").join(Iterables.transform(assets,
-                            new Function<Asset, String>() {
-                                @Override
-                                public String apply(Asset asset) {
-                                    return asset != null ? asset.getName() : null;
-                                }
-                            })) + " );");
+            TypeName elementType = TypeVariableName.get(isFontFolder ? FontAsset.getTypeName() : Asset.getTypeName());
+            TypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), elementType);
+            builder.addField(createListField(listType, assets));
         }
 
-        if (!root) {
-            sCurrentDepth -= 4;
-            writer.println("\n" + getIndent() + "}\n");
+        if (parentBuilder != builder) {
+            parentBuilder.addType(builder.build());
         }
     }
 
-    public static boolean isCrateHashValid(@Nonnull String crateOutputFile) {
+    @NonNull
+    private static TypeSpec createAssetClass() {
+        String[] fields = Asset.getFields();
+
+        TypeSpec.Builder builder = TypeSpec.classBuilder(Asset.getTypeName())
+                .addModifiers(PUBLIC, STATIC)
+                .addMethod(createConstructor(fields));
+
+        for (String field : fields) {
+            builder.addField(createStringField(toInstance(field), false, PRIVATE, FINAL))
+                    .addMethod(createGetter(field, String.class, false, PUBLIC));
+        }
+
+        return builder.build();
+    }
+
+    @NonNull
+    private static TypeSpec createFontAssetClass() {
+        TypeSpec.Builder builder = TypeSpec.classBuilder(FontAsset.getTypeName())
+                .addModifiers(PUBLIC, STATIC)
+                .superclass(TypeVariableName.get(Asset.getTypeName()));
+
+        String[] fields = FontAsset.getFields();
+        for (String field : fields) {
+            builder.addField(createStringField(toInstance(field), false, PRIVATE, FINAL))
+                    .addMethod(createGetter(field, String.class, false, PUBLIC));
+        }
+
+        builder.addMethod(createSubConstructor(Asset.getFields(), fields));
+        return builder.build();
+    }
+
+    @NonNull
+    private static MethodSpec createCrateConstructor() {
+        String context = "context";
+
+        return MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PUBLIC)
+                .addParameter(createParameter(context, CONTEXT_CLASS, false))
+                .addStatement("$N = $N.getApplicationContext()", toInstance(context), context)
+                .build();
+    }
+
+    @NonNull
+    private static MethodSpec createConstructor(@NonNull String... fields) {
+        MethodSpec.Builder builder = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PRIVATE);
+
+        for (String field : fields) {
+            builder.addParameter(createParameter(field, String.class, false))
+                    .addStatement("$N = $N", toInstance(field), field);
+        }
+
+        return builder.build();
+    }
+
+    @NonNull
+    private static MethodSpec createInputStreamMethod(@NonNull String paramName,
+                                                      @NonNull TypeName typeName,
+                                                      boolean mode,
+                                                      @NonNull Modifier... modifiers) {
+        MethodSpec.Builder builder = MethodSpec.methodBuilder("get");
+
+        builder.addModifiers(modifiers)
+                .addAnnotation(createNullabilityAnnotation(false))
+                .addParameter(createParameter(paramName, typeName, false))
+                .addException(IOException.class)
+                .returns(InputStream.class);
+
+        String modeName = "mode";
+        if (mode) {
+            builder.addParameter(createPrimitiveParameter(modeName, int.class))
+                    .addStatement("return getManager().open($N.mPath, $N)", paramName, modeName);
+        } else {
+            builder.addStatement("return getManager().open($N.mPath)", paramName);
+        }
+
+        return builder.build();
+    }
+
+    @NonNull
+    private static MethodSpec createGetManagerMethod() {
+        return MethodSpec.methodBuilder("getManager")
+                .addModifiers(PRIVATE)
+                .addAnnotation(createNullabilityAnnotation(false))
+                .beginControlFlow("if (mAssetManager == null)")
+                .addStatement("mAssetManager = mContext.getAssets()")
+                .endControlFlow()
+                .addStatement("return mAssetManager")
+                .returns(ASSETMANAGER_CLASS)
+                .build();
+    }
+
+    @NonNull
+    private static MethodSpec createCloseManagerMethod() {
+        return MethodSpec.methodBuilder("close")
+                .addModifiers(PUBLIC)
+                .beginControlFlow("if (mAssetManager != null)")
+                .addStatement("mAssetManager.close()")
+                .addStatement("mAssetManager = null")
+                .endControlFlow()
+                .build();
+    }
+
+    @NonNull
+    private static MethodSpec createSubConstructor(@NonNull String[] parentFields, @NonNull String[] fields) {
+        MethodSpec.Builder builder = MethodSpec.constructorBuilder()
+                .addModifiers(Modifier.PRIVATE);
+
+        builder.addStatement("super(" + Joiner.on(", ").join(parentFields) + ")");
+
+        for (String field : parentFields) {
+            builder.addParameter(createParameter(field, String.class, false));
+        }
+
+        for (String field : fields) {
+            builder.addParameter(createParameter(field, String.class, false))
+                    .addStatement("$N = $N", toInstance(field), field);
+        }
+
+        return builder.build();
+    }
+
+    @NonNull
+    private static FieldSpec createListField(@NonNull TypeName typeName, @NonNull List<Asset> assets) {
+        return FieldSpec.builder(typeName, "LIST")
+                .addModifiers(PUBLIC, STATIC, FINAL)
+                .initializer(CodeBlock.builder()
+                        .add("$T.asList(", Arrays.class)
+                        .add(Joiner.on(", ").join(Iterables.transform(assets,
+                            new Function<Asset, String>() {
+                                @Override
+                                public String apply(Asset asset) {
+                                    return asset != null ? asset.getFieldName() : null;
+                                }
+                            })) + ")")
+                        .build())
+                .build();
+    }
+
+    @NonNull
+    private static FieldSpec createAssetField(@NonNull Asset asset) {
+        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(Asset.getTypeName()), asset.getFieldName())
+                .addModifiers(PUBLIC, STATIC, FINAL);
+        asset.addInitialiser(builder);
+        return builder.build();
+    }
+
+    @NonNull
+    private static FieldSpec createFontAssetField(@NonNull FontAsset asset) {
+        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(FontAsset.getTypeName()), asset.getFieldName())
+                .addModifiers(PUBLIC, STATIC, FINAL);
+        asset.addInitialiser(builder);
+        return builder.build();
+    }
+
+    public static boolean isCrateHashValid(@NonNull String crateOutputFile) {
         File file = new File(crateOutputFile);
         return file.exists() && file.isFile() && CrateHasher.isHashValid(file, CRATE_HASH);
     }
 
-    @Nonnull
-    private static String getIndent() {
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < sCurrentDepth; i++) {
-            sb.append(" ");
-        }
-        return sb.toString();
-    }
-
-    @Nonnull
-    private static List<File> getFileList(@Nonnull File directory) {
+    @NonNull
+    private static List<File> getFileList(@NonNull File directory) {
         if (!directory.exists() || !directory.isDirectory()) {
             throw new IllegalArgumentException("Crate: Invalid file passed: " + directory.getAbsolutePath());
         }
@@ -271,7 +331,7 @@ public final class CrateGenerator {
     }
 
     @Nullable
-    private static String getFontName(@Nonnull String filePath) {
+    private static String getFontName(@NonNull String filePath) {
         try {
             FileInputStream inputStream = new FileInputStream(filePath);
             Font font = Font.createFont(Font.TRUETYPE_FONT, inputStream);
@@ -283,8 +343,8 @@ public final class CrateGenerator {
         }
     }
 
-    @Nonnull
-    private static String getFileExtension(@Nonnull String fileName) {
+    @NonNull
+    private static String getFileExtension(@NonNull String fileName) {
         String extension = "";
         int i = fileName.lastIndexOf('.');
         if (i > 0) {
@@ -293,50 +353,90 @@ public final class CrateGenerator {
         return extension;
     }
 
-    @Nonnull
-    private static String sanitiseFilename(@Nonnull String fileName) {
+    @NonNull
+    private static String sanitiseFilename(@NonNull String fileName) {
         return fileName.replace(" ", "_").replace("-", "_").replace(".", "_");
     }
 
     @SuppressWarnings("unused")
     private static class Asset {
 
-        @Nonnull
-        private final String mPath;
+        @NonNull
+        final String mFieldName;
 
-        @Nonnull
-        private final String mName;
+        @NonNull
+        final String mPath;
 
-        private Asset(@Nonnull String path, @Nonnull String name) {
+        @NonNull
+        final String mName;
+
+        private Asset(@NonNull String fieldName, @NonNull String path, @NonNull String name) {
+            mFieldName = fieldName;
             mPath = path;
             mName = name;
         }
 
-        @Nonnull
+        @NonNull
+        public String getFieldName() {
+            return mFieldName;
+        }
+
+        @NonNull
         public String getPath() {
             return mPath;
         }
 
-        @Nonnull
+        @NonNull
         public String getName() {
             return mName;
+        }
+
+        public void addInitialiser(@NonNull FieldSpec.Builder builder) {
+            builder.initializer("new $N($S, $S)", getTypeName(), mPath, mName);
+        }
+
+        @NonNull
+        public static String getTypeName() {
+            return Asset.class.getSimpleName();
+        }
+
+        @NonNull
+        public static String[] getFields() {
+            return new String[]{"path", "name"};
         }
     }
 
     @SuppressWarnings("unused")
     private static final class FontAsset extends Asset {
 
-        @Nonnull
-        private final String mFontName;
+        @NonNull
+        final String mFontName;
 
-        private FontAsset(@Nonnull String path, @Nonnull String name, @Nonnull String fontName) {
-            super(path, name);
+        private FontAsset(@NonNull String fieldName,
+                          @NonNull String path,
+                          @NonNull String name,
+                          @NonNull String fontName) {
+            super(fieldName, path, name);
             mFontName = fontName;
         }
 
-        @Nonnull
+        @NonNull
         public String getFontName() {
             return mFontName;
+        }
+
+        public void addInitialiser(@NonNull FieldSpec.Builder builder) {
+            builder.initializer("new $N($S, $S, $S)", getTypeName(), mPath, mName, mFontName);
+        }
+
+        @NonNull
+        public static String getTypeName() {
+            return FontAsset.class.getSimpleName();
+        }
+
+        @NonNull
+        public static String[] getFields() {
+            return new String[]{"fontName"};
         }
     }
 }

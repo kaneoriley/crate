@@ -60,7 +60,7 @@ class CratePlugin implements Plugin<Project> {
 
                 Task mergeAssetsTask = project.tasks["merge${flavorString}Assets"];
                 mergeAssetsTask.doLast {
-                    CrateGenerator.writeJava(crateOutputFile, variantAssetDir, packageName);
+                    CrateGenerator.writeJava(variantBuildDir, variantAssetDir, packageName);
                 }
 
                 variant.preBuild.doFirst {

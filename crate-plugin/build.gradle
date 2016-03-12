@@ -11,5 +11,6 @@ dependencies {
     compile gradleApi()
     compile localGroovy()
     compile 'com.google.code.findbugs:jsr305:3.0.1'
+    compile 'com.squareup:javapoet:1.5.1'
     compile 'commons-lang:commons-lang:2.6'
 }
