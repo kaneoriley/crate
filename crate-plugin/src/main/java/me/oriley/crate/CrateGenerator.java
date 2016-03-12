@@ -20,7 +20,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import com.google.common.base.Function;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import com.squareup.javapoet.*;
 
 import javax.lang.model.element.Modifier;
@@ -102,7 +102,7 @@ public final class CrateGenerator {
                 .addModifiers(PUBLIC, STATIC, FINAL);
 
         List<File> files = getFileList(directory);
-        List<Asset> assets = new ArrayList<>();
+        Map<String, Asset> assetMap = new HashMap<>();
         boolean isFontFolder = true;
 
         for (File file : files) {
@@ -110,28 +110,37 @@ public final class CrateGenerator {
                 listFiles(builder, file, variantAssetDir, false);
             } else {
                 String fileName = file.getName();
-                String assetName = sanitiseFilename(fileName).toUpperCase(US);
+                String fieldName = sanitiseFieldName(fileName).toUpperCase(US);
+
+                if (assetMap.containsKey(fieldName)) {
+                    String baseFieldName = fieldName + "_";
+                    int counter = 0;
+                    while (assetMap.containsKey(fieldName)) {
+                        fieldName = baseFieldName + counter;
+                    }
+                }
+
                 String filePath = file.getPath().replace(variantAssetDir + "/", "");
 
                 String fileExtension = getFileExtension(fileName);
                 Asset asset;
                 if (equalsIgnoreCase(fileExtension, TTF_EXTENSION) || equalsIgnoreCase(fileExtension, OTF_EXTENSION)) {
                     String fontName = getFontName(file.getPath());
-                    asset = new FontAsset(assetName, filePath, fileName, fontName != null ? fontName : fileName);
+                    asset = new FontAsset(fieldName, filePath, fileName, fontName != null ? fontName : fileName);
                     builder.addField(createFontAssetField((FontAsset) asset));
                 } else {
                     isFontFolder = false;
-                    asset = new Asset(assetName, filePath, fileName);
+                    asset = new Asset(fieldName, filePath, fileName);
                     builder.addField(createAssetField(asset));
                 }
-                assets.add(asset);
+                assetMap.put(fieldName, asset);
             }
         }
 
-        if (!assets.isEmpty()) {
+        if (!assetMap.isEmpty()) {
             TypeName elementType = TypeVariableName.get(isFontFolder ? FontAsset.getTypeName() : Asset.getTypeName());
             TypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), elementType);
-            builder.addField(createListField(listType, assets));
+            builder.addField(createListField(listType, assetMap));
         }
 
         if (parentBuilder != builder) {
@@ -263,18 +272,18 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static FieldSpec createListField(@NonNull TypeName typeName, @NonNull List<Asset> assets) {
+    private static FieldSpec createListField(@NonNull TypeName typeName, @NonNull Map<String, Asset> assets) {
         return FieldSpec.builder(typeName, "LIST")
                 .addModifiers(PUBLIC, STATIC, FINAL)
                 .initializer(CodeBlock.builder()
                         .add("$T.asList(", Arrays.class)
-                        .add(Joiner.on(", ").join(Iterables.transform(assets,
-                            new Function<Asset, String>() {
-                                @Override
-                                public String apply(Asset asset) {
-                                    return asset != null ? asset.getFieldName() : null;
-                                }
-                            })) + ")")
+                        .add(Joiner.on(", ").join(Iterators.transform(assets.entrySet().iterator(),
+                                new Function<Map.Entry<String, Asset>, String>() {
+                                    @Override
+                                    public String apply(Map.Entry<String, Asset> entry) {
+                                        return entry.getKey();
+                                    }
+                                })) + ")")
                         .build())
                 .build();
     }
@@ -354,8 +363,20 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static String sanitiseFilename(@NonNull String fileName) {
-        return fileName.replace(" ", "_").replace("-", "_").replace(".", "_");
+    private static String sanitiseFieldName(@NonNull String fileName) {
+        // JavaPoet doesn't like the dollar signs so we remove them too
+        char[] charArray = fileName.toCharArray();
+        for (int i = 0; i < charArray.length; i++) {
+            if (!Character.isJavaIdentifierPart(charArray[i]) || charArray[i] == '$') {
+                charArray[i] = '_';
+            }
+        }
+
+        if (!Character.isJavaIdentifierStart(charArray[0]) || charArray[0] == '$') {
+            return "_" + new String(charArray);
+        } else {
+            return new String(charArray);
+        }
     }
 
     @SuppressWarnings("unused")
