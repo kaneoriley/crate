@@ -1,0 +1,15 @@
+#
+# Gradle/IntelliJ stuff
+#
+.gradle/
+.idea/
+build/
+./captures/
+*.apk
+
+#
+# Local Configuration
+#
+./workspace/
+*.iml
+local.properties
