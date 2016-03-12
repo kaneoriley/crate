@@ -38,7 +38,7 @@ If all files in a folder are font files, the static `LIST` will be of type `List
 
 # Gradle Dependency
 
-1. Add JitPack.io to your repositories list in the root projects build.gradle:
+ * Add JitPack.io to your repositories list in the root projects build.gradle:
 
 ```gradle
 repositories {
@@ -46,7 +46,7 @@ repositories {
 }
 ```
 
-2. Add crate-plugin to your buildscript classpath:
+ * Add crate-plugin to your buildscript classpath:
 
 ```gradle
 buildscript {
@@ -56,9 +56,14 @@ buildscript {
 }
 ```
 
-3. Apply plugin to your application or library project:
+If you would like to run a newer version you can change the version number to `-SNAPSHOT` for the latest master
+branch, or a specific commit hash if you need an exact version. That's the beauty of JitPack.
+
+ * Apply the plugin to your application or library project:
 
 ```gradle
 apply plugin: 'com.android.application' || apply plugin: 'com.android.library'
 apply plugin: 'me.oriley.crate-plugin'
 ```
+
+Now just perform a gradle sync and you're done. You can now access `Crate` (package name will be the same as your application/library).

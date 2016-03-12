@@ -12,4 +12,4 @@ Change Log
 
 _2016-03-12_
 
-Initial release.
+ *  Initial release.
