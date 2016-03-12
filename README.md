@@ -51,7 +51,7 @@ repositories {
 ```gradle
 buildscript {
     dependencies {
-        classpath 'me.oriley:crate:0.1'
+        classpath 'me.oriley:crate:0.1.1'
     }
 }
 ```
