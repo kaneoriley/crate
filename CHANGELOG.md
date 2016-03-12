@@ -1,7 +1,9 @@
 Change Log
 ==========
 
-## Version 0.2 WIP
+## Version 0.1.1
+
+_2016-3-13_
 
  *  Feature: Add special handling for font assets
  *  Fix: Validate Crate JAR hash and force mergeAssets task to run if changed
