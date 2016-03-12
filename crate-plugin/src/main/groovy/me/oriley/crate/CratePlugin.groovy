@@ -46,26 +46,34 @@ class CratePlugin implements Plugin<Project> {
                 String flavorString = capitalise(variant.flavorName) + capitalise(variant.buildType.name);
 
                 String packageName = findPackageName(project)
-                String rootBuildDir = "${project.buildDir}/generated/source/crate/${variant.dirName}"
-                String variantPath = "${project.buildDir}/intermediates/assets/${variant.dirName}"
-                String outputFilePath = "${rootBuildDir}" + '/' + packageName.replace('.', '/')
+                String variantBuildDir = "${project.buildDir}/generated/source/crate/${variant.dirName}"
+                String variantAssetDir = "${project.buildDir}/intermediates/assets/${variant.dirName}"
+
+                String crateOutputFile =  "${variantBuildDir}/" + packageName.replace('.', '/') + '/Crate.java';
 
                 // Add source to main sourceset
                 variant.sourceSets.each { sourceSet ->
                     if (sourceSet.name == 'main') {
-                        sourceSet.java.srcDir "${rootBuildDir}"
+                        sourceSet.java.srcDir "${variantBuildDir}"
                     }
                 }
 
                 Task mergeAssetsTask = project.tasks["merge${flavorString}Assets"];
                 mergeAssetsTask.doLast {
-                    CrateGenerator generator = new CrateGenerator(outputFilePath, variantPath, packageName);
-                    generator.writeJava();
+                    CrateGenerator.writeJava(crateOutputFile, variantAssetDir, packageName);
+                }
+
+                variant.preBuild.doFirst {
+                    if (!CrateGenerator.isCrateHashValid(crateOutputFile)) {
+                        mergeAssetsTask.outputs.upToDateWhen {
+                            false
+                        }
+                    }
                 }
 
                 variant.javaCompile.dependsOn mergeAssetsTask
                 variant.javaCompile.mustRunAfter mergeAssetsTask
-                variant.registerJavaGeneratingTask(mergeAssetsTask, project.file(rootBuildDir))
+                variant.registerJavaGeneratingTask(mergeAssetsTask, project.file(variantBuildDir))
             }
         }
     }

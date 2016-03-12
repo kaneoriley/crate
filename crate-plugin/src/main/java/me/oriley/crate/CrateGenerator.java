@@ -32,50 +32,41 @@ import static org.apache.commons.lang.StringUtils.equalsIgnoreCase;
 
 public final class CrateGenerator {
 
+    private static final String CRATE_HASH = CrateHasher.getActualHash();
+
     private static final String OTF_EXTENSION = "otf";
     private static final String TTF_EXTENSION = "ttf";
 
-    @Nonnull
-    private final String mJavaFilePath;
+    private static int sCurrentDepth;
 
-    @Nonnull
-    private final String mAssetDir;
+    public static void writeJava(@Nonnull String crateOutputFile,
+                                 @Nonnull String variantAssetDir,
+                                 @Nonnull String packageName) {
+        sCurrentDepth = 4;
 
-    @Nonnull
-    private final String mPackageName;
-
-    private int mDepth;
-
-    CrateGenerator(@Nonnull String javaFilePath, @Nonnull String assetDir, @Nonnull String packageName) {
-        mJavaFilePath = javaFilePath;
-        mAssetDir = assetDir;
-        mPackageName = packageName;
-        mDepth = 4;
-    }
-
-    public void writeJava() {
-        File file = new File(mAssetDir);
+        File file = new File(variantAssetDir);
         if (!file.exists() || !file.isDirectory()) {
             return;
         }
 
-        File javaFile = new File(mJavaFilePath);
+        File javaFile = new File(crateOutputFile);
         if (javaFile.exists()) {
             //noinspection ResultOfMethodCallIgnored
             javaFile.delete();
         }
 
         //noinspection ResultOfMethodCallIgnored
-        javaFile.mkdirs();
+        javaFile.getParentFile().mkdirs();
         if (!javaFile.getParentFile().exists() || !javaFile.getParentFile().isDirectory()) {
-            throw new IllegalStateException("Crate: Output dir for " + mJavaFilePath + " does not exist!");
+            throw new IllegalStateException("Crate: Output dir for " + crateOutputFile + " does not exist!");
         }
 
         // TODO: Use JavaPoet?
         PrintWriter writer = null;
         try {
-            writer = new PrintWriter(mJavaFilePath + "/Crate.java", "UTF-8");
-            writer.println("package " + mPackageName + ";\n");
+            writer = new PrintWriter(crateOutputFile, "UTF-8");
+            writer.println("// " + CRATE_HASH + " -- DO NOT EDIT THIS LINE\n");
+            writer.println("package " + packageName + ";\n");
             writer.println("import android.content.Context;");
             writer.println("import android.content.res.AssetManager;");
             writer.println("import android.support.annotation.NonNull;");
@@ -164,11 +155,12 @@ public final class CrateGenerator {
             writer.println("        }\n");
             writer.println("    }\n");
 
-            listFiles(writer, file, true);
+            listFiles(writer, file, variantAssetDir, true);
 
             writer.println("}");
-        } catch (FileNotFoundException | UnsupportedEncodingException e) {
+        } catch (IOException e) {
             e.printStackTrace();
+            throw new IllegalStateException("Crate: IOException when generating class");
         } finally {
             if (writer != null) {
                 writer.close();
@@ -176,10 +168,13 @@ public final class CrateGenerator {
         }
     }
 
-    private void listFiles(@Nonnull PrintWriter writer, @Nonnull File directory, boolean root) {
+    private static void listFiles(@Nonnull PrintWriter writer,
+                                  @Nonnull File directory,
+                                  @Nonnull String variantAssetDir,
+                                  boolean root) {
         if (!root) {
             writer.println("" + getIndent() + "public static final class " + directory.getName() + " {\n");
-            mDepth += 4;
+            sCurrentDepth += 4;
         }
 
         List<File> files = getFileList(directory);
@@ -188,11 +183,11 @@ public final class CrateGenerator {
 
         for (File file : files) {
             if (file.isDirectory()) {
-                listFiles(writer, file, false);
+                listFiles(writer, file, variantAssetDir, false);
             } else {
                 String fileName = file.getName();
                 String assetName = sanitiseFilename(fileName).toUpperCase(US);
-                String filePath = file.getPath().replace(mAssetDir + "/", "");
+                String filePath = file.getPath().replace(variantAssetDir + "/", "");
 
                 String fileExtension = getFileExtension(fileName);
                 Asset asset;
@@ -226,15 +221,20 @@ public final class CrateGenerator {
         }
 
         if (!root) {
-            mDepth -= 4;
+            sCurrentDepth -= 4;
             writer.println("\n" + getIndent() + "}\n");
         }
     }
 
+    public static boolean isCrateHashValid(@Nonnull String crateOutputFile) {
+        File file = new File(crateOutputFile);
+        return file.exists() && file.isFile() && CrateHasher.isHashValid(file, CRATE_HASH);
+    }
+
     @Nonnull
-    private String getIndent() {
+    private static String getIndent() {
         StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < mDepth; i++) {
+        for (int i = 0; i < sCurrentDepth; i++) {
             sb.append(" ");
         }
         return sb.toString();
