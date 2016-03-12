@@ -16,18 +16,24 @@
 
 package me.oriley.crate;
 
+import com.google.common.base.Function;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Iterables;
 
 import javax.annotation.Nonnull;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
+import javax.annotation.Nullable;
+import java.awt.*;
+import java.io.*;
 import java.util.*;
+import java.util.List;
 
 import static java.util.Locale.US;
+import static org.apache.commons.lang.StringUtils.equalsIgnoreCase;
 
 public final class CrateGenerator {
+
+    private static final String OTF_EXTENSION = "otf";
+    private static final String TTF_EXTENSION = "ttf";
 
     @Nonnull
     private final String mJavaFilePath;
@@ -118,27 +124,44 @@ public final class CrateGenerator {
             writer.println("        }");
             writer.println("    }\n");
 
-            writer.println("    public static final class Asset {\n");
+            writer.println("    public static class Asset {\n");
 
             writer.println("        @NonNull");
             writer.println("        private final String mPath;\n");
+
             writer.println("        @NonNull");
             writer.println("        private final String mName;\n");
 
             writer.println("        private Asset(@NonNull String path, @NonNull String name) {");
             writer.println("            mPath = path;");
             writer.println("            mName = name;");
-            writer.println("        }");
+            writer.println("        }\n");
 
             writer.println("        @NonNull");
             writer.println("        public String getPath() {");
             writer.println("            return mPath;");
-            writer.println("        }");
+            writer.println("        }\n");
 
             writer.println("        @NonNull");
             writer.println("        public String getName() {");
             writer.println("            return mName;");
-            writer.println("        }");
+            writer.println("        }\n");
+            writer.println("    }\n");
+
+            writer.println("    public static final class FontAsset extends Asset {\n");
+
+            writer.println("        @NonNull");
+            writer.println("        private final String mFontName;\n");
+
+            writer.println("        private FontAsset(@NonNull String path, @NonNull String name, @NonNull String fontName) {");
+            writer.println("            super(path, name);");
+            writer.println("            mFontName = fontName;");
+            writer.println("        }\n");
+
+            writer.println("        @NonNull");
+            writer.println("        public String getFontName() {");
+            writer.println("            return mFontName;");
+            writer.println("        }\n");
             writer.println("    }\n");
 
             listFiles(writer, file, true);
@@ -160,7 +183,8 @@ public final class CrateGenerator {
         }
 
         List<File> files = getFileList(directory);
-        List<String> assetNames = new ArrayList<>();
+        List<Asset> assets = new ArrayList<>();
+        boolean isFontFolder = true;
 
         for (File file : files) {
             if (file.isDirectory()) {
@@ -169,15 +193,36 @@ public final class CrateGenerator {
                 String fileName = file.getName();
                 String assetName = sanitiseFilename(fileName).toUpperCase(US);
                 String filePath = file.getPath().replace(mAssetDir + "/", "");
-                writer.println(getIndent() + "public static final Asset " + assetName + " = new Asset(\""
-                        + filePath + "\", \"" + fileName + "\");");
-                assetNames.add(assetName);
+
+                String fileExtension = getFileExtension(fileName);
+                Asset asset;
+                if (equalsIgnoreCase(fileExtension, TTF_EXTENSION) || equalsIgnoreCase(fileExtension, OTF_EXTENSION)) {
+                    String fontName = getFontName(file.getPath());
+                    asset = new FontAsset(filePath, assetName, fontName != null ? fontName : fileName);
+                } else {
+                    isFontFolder = false;
+                    asset = new Asset(filePath, assetName);
+                }
+                assets.add(asset);
+
+                String className = asset.getClass().getSimpleName();
+                String fontName = (asset instanceof FontAsset ? (", \"" + ((FontAsset) asset).getFontName() + "\"") : "");
+                writer.println(getIndent() + "public static final " + className + " " + assetName + " = new " +
+                        className + "(\"" + filePath + "\", \"" + fileName + "\"" + fontName + ");");
             }
         }
 
-        if (!assetNames.isEmpty()) {
-            writer.println("\n" + getIndent() + "public static final List<Asset> LIST = Arrays.asList(\n" + getIndent() + "        " +
-                    Joiner.on(",\n" + getIndent() + "        ").join(assetNames) + " );");
+        if (!assets.isEmpty()) {
+            String listClass = isFontFolder ? "FontAsset" : "Asset";
+            writer.println("\n" + getIndent() + "public static final List<" + listClass +
+                    "> LIST = Arrays.asList(\n" + getIndent() + "        " +
+                    Joiner.on(",\n" + getIndent() + "        ").join(Iterables.transform(assets,
+                            new Function<Asset, String>() {
+                                @Override
+                                public String apply(Asset asset) {
+                                    return asset != null ? asset.getName() : null;
+                                }
+                            })) + " );");
         }
 
         if (!root) {
@@ -225,8 +270,73 @@ public final class CrateGenerator {
         return files;
     }
 
+    @Nullable
+    private static String getFontName(@Nonnull String filePath) {
+        try {
+            FileInputStream inputStream = new FileInputStream(filePath);
+            Font font = Font.createFont(Font.TRUETYPE_FONT, inputStream);
+            inputStream.close();
+            return font.getName();
+        } catch (FontFormatException | IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    @Nonnull
+    private static String getFileExtension(@Nonnull String fileName) {
+        String extension = "";
+        int i = fileName.lastIndexOf('.');
+        if (i > 0) {
+            extension = fileName.substring(i + 1);
+        }
+        return extension;
+    }
+
     @Nonnull
     private static String sanitiseFilename(@Nonnull String fileName) {
         return fileName.replace(" ", "_").replace("-", "_").replace(".", "_");
+    }
+
+    @SuppressWarnings("unused")
+    private static class Asset {
+
+        @Nonnull
+        private final String mPath;
+
+        @Nonnull
+        private final String mName;
+
+        private Asset(@Nonnull String path, @Nonnull String name) {
+            mPath = path;
+            mName = name;
+        }
+
+        @Nonnull
+        public String getPath() {
+            return mPath;
+        }
+
+        @Nonnull
+        public String getName() {
+            return mName;
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static final class FontAsset extends Asset {
+
+        @Nonnull
+        private final String mFontName;
+
+        private FontAsset(@Nonnull String path, @Nonnull String name, @Nonnull String fontName) {
+            super(path, name);
+            mFontName = fontName;
+        }
+
+        @Nonnull
+        public String getFontName() {
+            return mFontName;
+        }
     }
 }

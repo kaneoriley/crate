@@ -30,7 +30,11 @@ for (Crate.Asset asset : Crate.fonts.LIST) {
 ```
 
 Each `Asset` has two methods, `asset.getPath()` will return the full path as required by an `AssetManager`, and
-`asset.getName()`, which will return the filename only.
+`asset.getName()`, which will return the filename only. If a file happens to be a TTF/OTF font, the `FontAsset` class
+will be used, which has an extra `fontAsset.getFontName()` method for convenience.
+
+If all files in a folder are font files, the static `LIST` will be of type `List<FontAsset>`, otherwise the generic
+`List<Asset>` type will be used.
 
 # Gradle Dependency
 
