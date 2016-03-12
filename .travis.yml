@@ -1,13 +1,4 @@
-language: android
-
-android:
-  components:
-    - tools
-    - build-tools-23.0.2
-    - android-23
-    - extra-android-support
-    - extra-android-m2repository
-    - extra-google-m2repository
+language: groovy
 
 jdk:
  - oraclejdk8
