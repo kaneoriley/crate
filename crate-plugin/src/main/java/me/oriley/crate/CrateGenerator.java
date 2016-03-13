@@ -126,7 +126,7 @@ public final class CrateGenerator {
                 .addModifiers(PUBLIC, STATIC, FINAL);
 
         List<File> files = getFileList(directory);
-        Map<String, Asset> assetMap = new HashMap<>();
+        TreeMap<String, Asset> assetMap = new TreeMap<>();
         boolean isFontFolder = true;
 
         for (File file : files) {
