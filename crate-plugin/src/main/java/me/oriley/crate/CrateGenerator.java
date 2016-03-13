@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import static java.util.Locale.US;
 import static javax.lang.model.element.Modifier.*;
@@ -47,9 +48,13 @@ public final class CrateGenerator {
     private static final String OTF_EXTENSION = "otf";
     private static final String TTF_EXTENSION = "ttf";
 
-    public static void writeJava(@NonNull String baseOutputDir,
-                                 @NonNull String variantAssetDir,
-                                 @NonNull String packageName) {
+    // TODO: Add DSL extension to allow end user to debug
+    private static final boolean DEBUG = false;
+
+    public static void buildCrate(@NonNull String baseOutputDir,
+                                  @NonNull String variantAssetDir,
+                                  @NonNull String packageName) {
+        long startNanos = System.nanoTime();
         File variantDir = new File(variantAssetDir);
         if (!variantDir.exists() || !variantDir.isDirectory()) {
             return;
@@ -59,7 +64,26 @@ public final class CrateGenerator {
             brewJava(variantDir, variantAssetDir, packageName).writeTo(new File(baseOutputDir));
         } catch (IOException e) {
             e.printStackTrace();
-            throw new IllegalStateException("failed to generate java");
+            throw new IllegalStateException("Crate: Failed to generate java");
+        }
+
+        long lengthMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        log("Time to build was " + lengthMillis + "ms");
+    }
+
+    public static boolean isCrateHashValid(@NonNull String crateOutputFile) {
+        long startNanos = System.nanoTime();
+        File file = new File(crateOutputFile);
+        boolean isHashValid = file.exists() && file.isFile() && CrateHasher.isHashValid(file, CRATE_HASH);
+
+        long lengthMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
+        log("Hash check took " + lengthMillis + "ms, was valid: " + isHashValid);
+        return isHashValid;
+    }
+
+    private static void log(@NonNull String message) {
+        if (DEBUG) {
+            System.out.println("Crate: " + message);
         }
     }
 
@@ -302,11 +326,6 @@ public final class CrateGenerator {
                 .addModifiers(PUBLIC, STATIC, FINAL);
         asset.addInitialiser(builder);
         return builder.build();
-    }
-
-    public static boolean isCrateHashValid(@NonNull String crateOutputFile) {
-        File file = new File(crateOutputFile);
-        return file.exists() && file.isFile() && CrateHasher.isHashValid(file, CRATE_HASH);
     }
 
     @NonNull
