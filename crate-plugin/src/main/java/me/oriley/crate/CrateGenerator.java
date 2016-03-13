@@ -310,14 +310,14 @@ public final class CrateGenerator {
         return FieldSpec.builder(typeName, fieldName)
                 .addModifiers(PUBLIC, STATIC, FINAL)
                 .initializer(CodeBlock.builder()
-                        .add("$T.asList(", Arrays.class)
+                        .add("$T.unmodifiableList($T.asList(", Collections.class, Arrays.class)
                         .add(Joiner.on(", ").join(Iterators.transform(assets.entrySet().iterator(),
                                 new Function<Map.Entry<String, Asset>, String>() {
                                     @Override
                                     public String apply(Map.Entry<String, Asset> entry) {
                                         return entry != null ? entry.getKey() : null;
                                     }
-                                })) + ")")
+                                })) + "))")
                         .build())
                 .build();
     }
