@@ -2,8 +2,6 @@ package me.oriley.crate;
 
 import android.support.annotation.NonNull;
 
-import org.apache.commons.lang.StringUtils;
-
 import java.io.*;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -39,24 +37,5 @@ public final class CrateHasher {
         }
 
         return sb.toString();
-    }
-
-    public static boolean isHashValid(@NonNull File crateOutputFile, @NonNull String currentHash) {
-        if (StringUtils.isEmpty(currentHash)) {
-            return false;
-        }
-
-        try {
-            FileReader reader = new FileReader(crateOutputFile);
-            BufferedReader input = new BufferedReader(reader);
-            String firstLine = input.readLine();
-            input.close();
-            reader.close();
-
-            return firstLine != null && firstLine.contains(currentHash);
-        } catch (IOException e) {
-            e.printStackTrace();
-            return false;
-        }
     }
 }

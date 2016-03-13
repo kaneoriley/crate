@@ -22,15 +22,13 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
 import com.squareup.javapoet.*;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.lang.model.element.Modifier;
 import java.awt.*;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -115,12 +113,44 @@ public final class CrateGenerator {
         } else if (!file.isFile()) {
             log("File " + crateOutputFile + " is not a file (?), hash invalid");
         } else {
-            returnValue = CrateHasher.isHashValid(file, CRATE_HASH);
+            returnValue = isFileValid(file, getComments());
         }
 
         long lengthMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         log("Hash check took " + lengthMillis + "ms, was valid: " + returnValue);
         return returnValue;
+    }
+
+    private boolean isFileValid(@NonNull File crateOutputFile, @NonNull String[] comments) {
+        if (comments.length <= 0) {
+            return false;
+        }
+
+        boolean isValid = true;
+        try {
+            FileReader reader = new FileReader(crateOutputFile);
+            BufferedReader input = new BufferedReader(reader);
+
+            for (String comment : comments) {
+                String fileLine = input.readLine();
+                if (fileLine == null || comment == null || !StringUtils.contains(fileLine, comment)) {
+                    log("Aborting, comment: " + comment + ", fileLine: " + fileLine);
+                    isValid = false;
+                    break;
+                } else {
+                    log("Line valid, comment: " + comment + ", fileLine: " + fileLine);
+                }
+            }
+
+            input.close();
+            reader.close();
+        } catch (IOException e) {
+            logError("Error parsing file", e, false);
+            isValid = false;
+        }
+
+        log("File check result -- isValid ? " + isValid);
+        return isValid;
     }
 
     private void logError(@NonNull String message, @NonNull Throwable error, boolean throwError) {
@@ -167,10 +197,19 @@ public final class CrateGenerator {
                 .addMethod(createGetManagerMethod())
                 .addMethod(createCloseManagerMethod());
 
-        return JavaFile.builder(packageName, builder.build())
-                .indent("    ")
-                .addFileComment(CRATE_HASH + " -- DO NOT EDIT THIS LINE")
-                .build();
+        JavaFile.Builder javaBuilder = JavaFile.builder(packageName, builder.build())
+                .indent("    ");
+
+        for (String comment : getComments()) {
+            javaBuilder.addFileComment(comment + "\n");
+        }
+
+        return javaBuilder.build();
+    }
+
+    @NonNull
+    private String[] getComments() {
+        return new String[] { CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName};
     }
 
     private static void listFiles(@NonNull TreeMap<String, Asset> allAssets,
