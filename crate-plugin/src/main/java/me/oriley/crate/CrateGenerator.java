@@ -43,6 +43,7 @@ public final class CrateGenerator {
     private static final String DEFAULT_CLASS_NAME = "Crate";
     private static final String CRATE_HASH = CrateHasher.getActualHash();
     private static final String ASSETS = "assets";
+    private static final String ASSET__MANAGER = "assetManager";
 
     private static final ClassName ASSETMANAGER_CLASS = ClassName.get("android.content.res", "AssetManager");
     private static final ClassName CONTEXT_CLASS = ClassName.get("android.content", "Context");
@@ -182,8 +183,7 @@ public final class CrateGenerator {
                 .addType(createFontAssetClass())
                 .addAnnotation(createSuppressWarningAnnotation("unused"));
 
-        builder.addField(createField(CONTEXT_CLASS, false, PRIVATE, FINAL))
-                .addField(createField(ASSETMANAGER_CLASS, true, PRIVATE));
+        builder.addField(createField(ASSETMANAGER_CLASS, false, PRIVATE, FINAL));
 
         TreeMap<String, Asset> allAssets = new TreeMap<>();
         listFiles(allAssets, builder, ASSETS, variantDir, variantAssetDir, true);
@@ -198,9 +198,7 @@ public final class CrateGenerator {
         TypeName assetType = TypeVariableName.get(Asset.getTypeName());
         builder.addMethod(createCrateConstructor())
                 .addMethod(createInputStreamMethod(asset, assetType, false, PUBLIC))
-                .addMethod(createInputStreamMethod(asset, assetType, true, PUBLIC))
-                .addMethod(createGetManagerMethod())
-                .addMethod(createCloseManagerMethod());
+                .addMethod(createInputStreamMethod(asset, assetType, true, PUBLIC));
 
         JavaFile.Builder javaBuilder = JavaFile.builder(packageName, builder.build())
                 .indent("    ");
@@ -325,7 +323,7 @@ public final class CrateGenerator {
         return MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
                 .addParameter(createParameter(context, CONTEXT_CLASS, false))
-                .addStatement("$N = $N.getApplicationContext()", toInstance(context), context)
+                .addStatement("$N = $N.getApplicationContext().getAssets()", toInstance(ASSET__MANAGER), context)
                 .build();
     }
 
@@ -358,36 +356,12 @@ public final class CrateGenerator {
         String modeName = "mode";
         if (mode) {
             builder.addParameter(createPrimitiveParameter(modeName, int.class))
-                    .addStatement("return getManager().open($N.mPath, $N)", paramName, modeName);
+                    .addStatement("return $N.open($N.mPath, $N)", toInstance(ASSET__MANAGER), paramName, modeName);
         } else {
-            builder.addStatement("return getManager().open($N.mPath)", paramName);
+            builder.addStatement("return $N.open($N.mPath)", toInstance(ASSET__MANAGER), paramName);
         }
 
         return builder.build();
-    }
-
-    @NonNull
-    private MethodSpec createGetManagerMethod() {
-        return MethodSpec.methodBuilder("getManager")
-                .addModifiers(PRIVATE)
-                .addAnnotation(createNullabilityAnnotation(false))
-                .beginControlFlow("if (mAssetManager == null)")
-                .addStatement("mAssetManager = mContext.getAssets()")
-                .endControlFlow()
-                .addStatement("return mAssetManager")
-                .returns(ASSETMANAGER_CLASS)
-                .build();
-    }
-
-    @NonNull
-    private MethodSpec createCloseManagerMethod() {
-        return MethodSpec.methodBuilder("close")
-                .addModifiers(PUBLIC)
-                .beginControlFlow("if (mAssetManager != null)")
-                .addStatement("mAssetManager.close()")
-                .addStatement("mAssetManager = null")
-                .endControlFlow()
-                .build();
     }
 
     @NonNull
