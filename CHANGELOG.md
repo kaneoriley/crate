@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## Version 0.2 WIP
+
+ *  Improvement: Add debug logging for testing
+ *  Improvement: Use TreeMap to keep LIST fields sorted by field name
+ *  Feature: Add FULL_LIST field containing all assets for project
+
+
 ## Version 0.1.1
 
 _2016-3-13_

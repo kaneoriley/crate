@@ -41,6 +41,7 @@ import static org.apache.commons.lang.StringUtils.equalsIgnoreCase;
 public final class CrateGenerator {
 
     private static final String CRATE_HASH = CrateHasher.getActualHash();
+    private static final String ASSETS = "assets";
 
     private static final ClassName ASSETMANAGER_CLASS = ClassName.get("android.content.res", "AssetManager");
     private static final ClassName CONTEXT_CLASS = ClassName.get("android.content", "Context");
@@ -101,7 +102,14 @@ public final class CrateGenerator {
         builder.addField(createField(CONTEXT_CLASS, false, PRIVATE, FINAL))
                 .addField(createField(ASSETMANAGER_CLASS, true, PRIVATE));
 
-        listFiles(builder, variantDir, variantAssetDir, true);
+        TreeMap<String, Asset> allAssets = new TreeMap<>();
+        listFiles(allAssets, builder, ASSETS, variantDir, variantAssetDir, true);
+
+        if (!allAssets.isEmpty()) {
+            TypeName listType = ParameterizedTypeName.get(ClassName.get(List.class),
+                    TypeVariableName.get(Asset.getTypeName()));
+            builder.addField(createListField(listType, "FULL_LIST", allAssets));
+        }
 
         String asset = "asset";
         TypeName assetType = TypeVariableName.get(Asset.getTypeName());
@@ -117,12 +125,14 @@ public final class CrateGenerator {
                 .build();
     }
 
-    private static void listFiles(@NonNull TypeSpec.Builder parentBuilder,
+    private static void listFiles(@NonNull TreeMap<String, Asset> allAssets,
+                                  @NonNull TypeSpec.Builder parentBuilder,
+                                  @NonNull String classPathString,
                                   @NonNull File directory,
                                   @NonNull String variantAssetDir,
                                   boolean root) {
 
-        TypeSpec.Builder builder = root ? parentBuilder : TypeSpec.classBuilder(directory.getName())
+        TypeSpec.Builder builder = TypeSpec.classBuilder(root ? ASSETS : directory.getName())
                 .addModifiers(PUBLIC, STATIC, FINAL);
 
         List<File> files = getFileList(directory);
@@ -131,7 +141,7 @@ public final class CrateGenerator {
 
         for (File file : files) {
             if (file.isDirectory()) {
-                listFiles(builder, file, variantAssetDir, false);
+                listFiles(allAssets, builder, classPathString + "." + file.getName(), file, variantAssetDir, false);
             } else {
                 String fileName = file.getName();
                 String fieldName = sanitiseFieldName(fileName).toUpperCase(US);
@@ -158,18 +168,16 @@ public final class CrateGenerator {
                     builder.addField(createAssetField(asset));
                 }
                 assetMap.put(fieldName, asset);
+                allAssets.put(classPathString + "." + fieldName, asset);
             }
         }
 
         if (!assetMap.isEmpty()) {
             TypeName elementType = TypeVariableName.get(isFontFolder ? FontAsset.getTypeName() : Asset.getTypeName());
             TypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), elementType);
-            builder.addField(createListField(listType, assetMap));
+            builder.addField(createListField(listType, "LIST", assetMap));
         }
-
-        if (parentBuilder != builder) {
-            parentBuilder.addType(builder.build());
-        }
+        parentBuilder.addType(builder.build());
     }
 
     @NonNull
@@ -296,8 +304,10 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static FieldSpec createListField(@NonNull TypeName typeName, @NonNull Map<String, Asset> assets) {
-        return FieldSpec.builder(typeName, "LIST")
+    private static FieldSpec createListField(@NonNull TypeName typeName,
+                                             @NonNull String fieldName,
+                                             @NonNull Map<String, Asset> assets) {
+        return FieldSpec.builder(typeName, fieldName)
                 .addModifiers(PUBLIC, STATIC, FINAL)
                 .initializer(CodeBlock.builder()
                         .add("$T.asList(", Arrays.class)
@@ -305,7 +315,7 @@ public final class CrateGenerator {
                                 new Function<Map.Entry<String, Asset>, String>() {
                                     @Override
                                     public String apply(Map.Entry<String, Asset> entry) {
-                                        return entry.getKey();
+                                        return entry != null ? entry.getKey() : null;
                                     }
                                 })) + ")")
                         .build())
