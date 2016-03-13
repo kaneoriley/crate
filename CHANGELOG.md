@@ -8,7 +8,7 @@ Change Log
  *  Feature: Add FULL_LIST field containing all assets for project
  *  Improvement: Make list fields unmodifiable
  *  Feature: Add Gradle DSL extension for toggling debug logging and setting output package/class name
- *  Feature: Add option to use instance fields rather than static, to reduce ongoing memory requirements
+ *  Feature: Add option to disable static mode, to reduce ongoing memory requirements and simplify the API
  *  Fix: Don't close AssetManager as it can cause issues
  *  Feature: Add typeface retrieval method and caching for font assets
 

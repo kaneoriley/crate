@@ -5,17 +5,17 @@ import android.support.annotation.Nullable
 @SuppressWarnings("GroovyUnusedDeclaration")
 class CrateExtension {
 
-    def boolean staticFields = true
+    def boolean staticMode = true
     def boolean debugLogging = false
     def String packageName = null
     def String className = null
 
-    def setStaticFields(boolean enable) {
-        staticFields = enable
+    def setStaticMode(boolean enable) {
+        staticMode = enable
     }
 
-    def boolean getStaticFields() {
-        return staticFields
+    def boolean getStaticMode() {
+        return staticMode
     }
 
     def setDebugLogging(boolean enable) {

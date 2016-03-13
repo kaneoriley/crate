@@ -45,6 +45,10 @@ public final class CrateGenerator {
     private static final String ASSETS = "assets";
     private static final String CONTEXT = "context";
     private static final String TYPEFACE = "typeface";
+    private static final String OPEN = "open";
+    private static final String GET_TYPEFACE = "getTypeface";
+    private static final String THIS = "this";
+
     private static final String TYPEFACE_CACHE = "typefaceCache";
     private static final String ASSET_MANAGER = "AssetManager";
 
@@ -70,7 +74,7 @@ public final class CrateGenerator {
     @NonNull
     private final String mClassName;
 
-    private final boolean mStaticFields;
+    private final boolean mStaticMode;
 
     private final boolean mDebugLogging;
 
@@ -78,20 +82,20 @@ public final class CrateGenerator {
                           @NonNull String variantAssetDir,
                           @NonNull String packageName,
                           @Nullable String className,
-                          boolean staticFields,
+                          boolean staticMode,
                           boolean debugLogging) {
         mBaseOutputDir = baseOutputDir;
         mVariantAssetDir = variantAssetDir;
         mPackageName = packageName;
         mClassName = className != null ? className : CRATE;
-        mStaticFields = staticFields;
+        mStaticMode = staticMode;
         mDebugLogging = debugLogging;
         log("CrateGenerator constructed\n" +
                 "    Output: " + mBaseOutputDir + "\n" +
                 "    Asset: " + mVariantAssetDir + "\n" +
                 "    Package: " + mPackageName + "\n" +
                 "    Class: " + mClassName + "\n" +
-                "    Static: " + mStaticFields + "\n" +
+                "    Static: " + mStaticMode + "\n" +
                 "    Logging: " + mDebugLogging);
     }
 
@@ -164,6 +168,13 @@ public final class CrateGenerator {
         return isValid;
     }
 
+    private void validateNonStatic() {
+        if (mStaticMode) {
+            String message = "Dont call non static spec creator in static mode";
+            logError(message, new Exception(), true);
+        }
+    }
+
     private void logError(@NonNull String message, @NonNull Throwable error, boolean throwError) {
         log.error("Crate: " + message, error);
         if (throwError) {
@@ -217,7 +228,7 @@ public final class CrateGenerator {
 
     @NonNull
     private String[] getComments() {
-        return new String[]{CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName, "Static: " + mStaticFields};
+        return new String[]{CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName, "Static: " + mStaticMode};
     }
 
     private void listFiles(@NonNull TreeMap<String, Asset> allAssets,
@@ -229,7 +240,11 @@ public final class CrateGenerator {
 
         String rootName = root ? ASSETS : directory.getName();
         TypeSpec.Builder builder = TypeSpec.classBuilder(makeClassName(rootName))
-                .addModifiers(PUBLIC, STATIC, FINAL);
+                .addModifiers(PUBLIC, FINAL);
+
+        if (mStaticMode) {
+            builder.addModifiers(STATIC);
+        }
 
         List<File> files = getFileList(directory);
         TreeMap<String, Asset> assetMap = new TreeMap<>();
@@ -275,14 +290,14 @@ public final class CrateGenerator {
         }
         parentBuilder.addType(builder.build());
 
-        if (!mStaticFields) {
+        if (!mStaticMode) {
             parentBuilder.addField(createNonStaticClassField(rootName));
         }
     }
 
     @NonNull
     private String makeClassName(@NonNull String rootClassName) {
-        if (mStaticFields) {
+        if (mStaticMode) {
             return rootClassName;
         } else {
             return capitalise(rootClassName + "Class");
@@ -294,8 +309,15 @@ public final class CrateGenerator {
         String[] fields = Asset.getFields();
 
         TypeSpec.Builder builder = TypeSpec.classBuilder(Asset.getTypeName())
-                .addModifiers(PUBLIC, STATIC)
-                .addMethod(createConstructor(fields));
+                .addMethod(createConstructor(fields))
+                .addModifiers(PUBLIC);
+
+        if (mStaticMode) {
+            builder.addModifiers(STATIC);
+        } else {
+            builder.addMethod(createNonStaticInputStreamMethod(false))
+                    .addMethod(createNonStaticInputStreamMethod(true));
+        }
 
         for (String field : fields) {
             builder.addField(createStringField(toInstance(field), false, FINAL))
@@ -306,10 +328,37 @@ public final class CrateGenerator {
     }
 
     @NonNull
+    private MethodSpec createNonStaticInputStreamMethod(boolean mode) {
+        validateNonStatic();
+
+        MethodSpec.Builder builder = MethodSpec.methodBuilder(OPEN)
+                .addAnnotation(createNullabilityAnnotation(false))
+                .addModifiers(PUBLIC)
+                .addException(IOException.class)
+                .returns(InputStream.class);
+
+        String modeName = "mode";
+        if (mode) {
+            builder.addParameter(createPrimitiveParameter(modeName, int.class))
+                    .addStatement("return $N.$N.$N($N, $N)", mClassName, THIS, OPEN, THIS, modeName);
+        } else {
+            builder.addStatement("return $N.$N.$N($N)", mClassName, THIS, OPEN, THIS);
+        }
+
+        return builder.build();
+    }
+
+    @NonNull
     private TypeSpec createFontAssetClass() {
         TypeSpec.Builder builder = TypeSpec.classBuilder(FontAsset.getTypeName())
-                .addModifiers(PUBLIC, STATIC)
-                .superclass(TypeVariableName.get(Asset.getTypeName()));
+                .superclass(TypeVariableName.get(Asset.getTypeName()))
+                .addModifiers(PUBLIC);
+
+        if (mStaticMode) {
+            builder.addModifiers(STATIC);
+        } else {
+            builder.addMethod(createNonStaticTypefaceMethod());
+        }
 
         String[] fields = FontAsset.getFields();
         for (String field : fields) {
@@ -319,6 +368,18 @@ public final class CrateGenerator {
 
         builder.addMethod(createSubConstructor(Asset.getFields(), fields));
         return builder.build();
+    }
+
+    @NonNull
+    private MethodSpec createNonStaticTypefaceMethod() {
+        validateNonStatic();
+
+        return MethodSpec.methodBuilder(GET_TYPEFACE)
+                .addAnnotation(createNullabilityAnnotation(true))
+                .addModifiers(PUBLIC)
+                .addStatement("return $N.$N.$N($N)", mClassName, THIS, GET_TYPEFACE, THIS)
+                .returns(TYPEFACE_CLASS)
+                .build();
     }
 
     @NonNull
@@ -359,9 +420,9 @@ public final class CrateGenerator {
         String localVarKey = "key";
 
         TypeName assetType = TypeVariableName.get(FontAsset.getTypeName());
-        return MethodSpec.methodBuilder("getTypeface")
-                .addModifiers(PUBLIC)
+        return MethodSpec.methodBuilder(GET_TYPEFACE)
                 .addAnnotation(createNullabilityAnnotation(true))
+                .addModifiers(mStaticMode ? PUBLIC : PRIVATE)
                 .addParameter(createParameter(fontAsset, assetType, false))
                 .addCode(CodeBlock.builder()
                         .addStatement("$T $N = $N.mPath", String.class, localVarKey, fontAsset)
@@ -372,7 +433,7 @@ public final class CrateGenerator {
                         .beginControlFlow("try")
                         .addStatement("$N = $T.createFromAsset($N, $N.mPath)", TYPEFACE, TYPEFACE_CLASS, toInstance(ASSET_MANAGER), fontAsset)
                         .nextControlFlow("catch ($T e)", RuntimeException.class)
-                        .addStatement("$T.e($S, \"Failed to load typeface for key: \" + $N, e)", LOG_CLASS, CRATE, localVarKey)
+                        .addStatement("$T.e($S, \"Failed to load typeface for key: \" + $N, e)", LOG_CLASS, mClassName, localVarKey)
                         .addStatement("e.printStackTrace()")
                         .nextControlFlow("finally")
                         .beginControlFlow("if ($N != null)", TYPEFACE)
@@ -389,10 +450,9 @@ public final class CrateGenerator {
     private MethodSpec createInputStreamMethod(boolean mode) {
         String asset = "asset";
         TypeName assetType = TypeVariableName.get(Asset.getTypeName());
-        MethodSpec.Builder builder = MethodSpec.methodBuilder("get");
-
-        builder.addModifiers(PUBLIC)
+        MethodSpec.Builder builder = MethodSpec.methodBuilder(OPEN)
                 .addAnnotation(createNullabilityAnnotation(false))
+                .addModifiers(mStaticMode ? PUBLIC : PRIVATE)
                 .addParameter(createParameter("asset", assetType, false))
                 .addException(IOException.class)
                 .returns(InputStream.class);
@@ -431,12 +491,11 @@ public final class CrateGenerator {
     private FieldSpec createListField(@NonNull TypeName typeName,
                                       @NonNull String fieldName,
                                       @NonNull Map<String, Asset> assets) {
-        FieldSpec.Builder builder = FieldSpec.builder(typeName, fieldName);
+        FieldSpec.Builder builder = FieldSpec.builder(typeName, fieldName)
+                .addModifiers(PUBLIC, FINAL);
 
-        if (mStaticFields) {
-            builder.addModifiers(PUBLIC, STATIC, FINAL);
-        } else {
-            builder.addModifiers(PUBLIC, FINAL);
+        if (mStaticMode) {
+            builder.addModifiers(STATIC);
         }
 
         return builder.initializer(CodeBlock.builder()
@@ -454,6 +513,8 @@ public final class CrateGenerator {
 
     @NonNull
     private FieldSpec createNonStaticClassField(@NonNull String rootName) {
+        validateNonStatic();
+
         TypeName typeName = TypeVariableName.get(makeClassName(rootName));
         return FieldSpec.builder(typeName, rootName)
                 .addModifiers(PUBLIC, FINAL)
@@ -464,12 +525,11 @@ public final class CrateGenerator {
 
     @NonNull
     private FieldSpec createAssetField(@NonNull Asset asset) {
-        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(Asset.getTypeName()), asset.getFieldName());
+        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(Asset.getTypeName()), asset.getFieldName())
+                .addModifiers(PUBLIC, FINAL);
 
-        if (mStaticFields) {
-            builder.addModifiers(PUBLIC, STATIC, FINAL);
-        } else {
-            builder.addModifiers(PUBLIC, FINAL);
+        if (mStaticMode) {
+            builder.addModifiers(STATIC);
         }
 
         asset.addInitialiser(builder);
@@ -478,12 +538,11 @@ public final class CrateGenerator {
 
     @NonNull
     private FieldSpec createFontAssetField(@NonNull FontAsset asset) {
-        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(FontAsset.getTypeName()), asset.getFieldName());
+        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(FontAsset.getTypeName()), asset.getFieldName())
+                .addModifiers(PUBLIC, FINAL);
 
-        if (mStaticFields) {
-            builder.addModifiers(PUBLIC, STATIC, FINAL);
-        } else {
-            builder.addModifiers(PUBLIC, FINAL);
+        if (mStaticMode) {
+            builder.addModifiers(STATIC);
         }
 
         asset.addInitialiser(builder);
