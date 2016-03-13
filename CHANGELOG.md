@@ -1,7 +1,9 @@
 Change Log
 ==========
 
-## Version 0.2 WIP
+## Version 0.2
+
+_2016-3-14
 
  *  Improvement: Add debug logging for testing
  *  Improvement: Use TreeMap to keep LIST fields sorted by field name
