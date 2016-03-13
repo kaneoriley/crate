@@ -1,7 +1,7 @@
 /*
  * Copyright (C) 2016 Kane O'Riley
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
+ * Licensed under the Apache License, Version 2.0 (the "License")
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -16,6 +16,8 @@
 
 package me.oriley.crate
 
+import android.support.annotation.NonNull
+import org.apache.commons.lang.StringUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
@@ -25,14 +27,14 @@ class CratePlugin implements Plugin<Project> {
 
     @Override
     void apply(Project project) {
-        def variants = null;
-        def plugin = project.plugins.findPlugin("android");
+        def variants = null
+        def plugin = project.plugins.findPlugin("android")
         if (plugin != null) {
-            variants = "applicationVariants";
+            variants = "applicationVariants"
         } else {
-            plugin = project.plugins.findPlugin("android-library");
+            plugin = project.plugins.findPlugin("android-library")
             if (plugin != null) {
-                variants = "libraryVariants";
+                variants = "libraryVariants"
             }
         }
 
@@ -40,16 +42,25 @@ class CratePlugin implements Plugin<Project> {
             throw new ProjectConfigurationException("android or android-library plugin must be applied", null)
         }
 
+        project.extensions.create('crate', CrateExtension)
+
         project.afterEvaluate {
             project.android[variants].all { variant ->
                 //noinspection GroovyAssignabilityCheck
-                String flavorString = capitalise(variant.flavorName) + capitalise(variant.buildType.name);
+                String flavorString = capitalise(variant.flavorName) + capitalise(variant.buildType.name)
 
-                String packageName = findPackageName(project)
+                boolean debugLogging = project.crate.debugLogging
+                String packageName = project.crate.packageName
+                if (StringUtils.isEmpty(packageName)) {
+                    packageName = findPackageName(project)
+                    log("Found package name " + packageName + " in manifest", debugLogging)
+                } else {
+                    log("Got package name " + packageName + " from extension", debugLogging)
+                }
+                String className = project.crate.className
+
                 String variantBuildDir = "${project.buildDir}/generated/source/crate/${variant.dirName}"
                 String variantAssetDir = "${project.buildDir}/intermediates/assets/${variant.dirName}"
-
-                String crateOutputFile =  "${variantBuildDir}/" + packageName.replace('.', '/') + '/Crate.java';
 
                 // Add source to main sourceset
                 variant.sourceSets.each { sourceSet ->
@@ -58,13 +69,16 @@ class CratePlugin implements Plugin<Project> {
                     }
                 }
 
-                Task mergeAssetsTask = project.tasks["merge${flavorString}Assets"];
+                //noinspection GrUnresolvedAccess,GroovyAssignabilityCheck
+                CrateGenerator generator = new CrateGenerator(variantBuildDir, variantAssetDir, packageName, className,
+                        debugLogging)
+                Task mergeAssetsTask = project.tasks["merge${flavorString}Assets"]
                 mergeAssetsTask.doLast {
-                    CrateGenerator.buildCrate(variantBuildDir, variantAssetDir, packageName);
+                    generator.buildCrate()
                 }
 
                 variant.preBuild.doFirst {
-                    if (!CrateGenerator.isCrateHashValid(crateOutputFile)) {
+                    if (!generator.isCrateHashValid()) {
                         mergeAssetsTask.outputs.upToDateWhen {
                             false
                         }
@@ -78,6 +92,12 @@ class CratePlugin implements Plugin<Project> {
         }
     }
 
+    private static void log(@NonNull String message, boolean enabled) {
+        if (enabled) {
+            println("Crate: " + message)
+        }
+    }
+
     private static String findPackageName(project) {
         File manifestFile = project.android.sourceSets.main.manifest.srcFile
         return (new XmlParser()).parse(manifestFile).@package
@@ -87,7 +107,7 @@ class CratePlugin implements Plugin<Project> {
         if (line == null || line.isEmpty()) {
             return ""
         } else {
-            return Character.toUpperCase(line.charAt(0)).toString() + line.substring(1);
+            return Character.toUpperCase(line.charAt(0)).toString() + line.substring(1)
         }
     }
 }

@@ -7,6 +7,7 @@ Change Log
  *  Improvement: Use TreeMap to keep LIST fields sorted by field name
  *  Feature: Add FULL_LIST field containing all assets for project
  *  Improvement: Make list fields unmodifiable
+ *  Feature: Add Gradle DSL extension for toggling debug logging and setting output package/class name
 
 
 ## Version 0.1.1

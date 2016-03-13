@@ -22,6 +22,8 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
 import com.squareup.javapoet.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.lang.model.element.Modifier;
 import java.awt.*;
@@ -40,6 +42,7 @@ import static org.apache.commons.lang.StringUtils.equalsIgnoreCase;
 
 public final class CrateGenerator {
 
+    private static final String DEFAULT_CLASS_NAME = "Crate";
     private static final String CRATE_HASH = CrateHasher.getActualHash();
     private static final String ASSETS = "assets";
 
@@ -49,51 +52,96 @@ public final class CrateGenerator {
     private static final String OTF_EXTENSION = "otf";
     private static final String TTF_EXTENSION = "ttf";
 
-    // TODO: Add DSL extension to allow end user to debug
-    private static final boolean DEBUG = false;
+    private static final Logger log = LoggerFactory.getLogger(CrateGenerator.class.getSimpleName());
 
-    public static void buildCrate(@NonNull String baseOutputDir,
-                                  @NonNull String variantAssetDir,
-                                  @NonNull String packageName) {
+    @NonNull
+    private final String mBaseOutputDir;
+
+    @NonNull
+    private final String mVariantAssetDir;
+
+    @NonNull
+    private final String mPackageName;
+
+    @NonNull
+    private final String mClassName;
+
+    private final boolean mDebugLogging;
+
+    public CrateGenerator(@NonNull String baseOutputDir,
+                          @NonNull String variantAssetDir,
+                          @NonNull String packageName,
+                          @Nullable String className,
+                          boolean debugLogging) {
+        mBaseOutputDir = baseOutputDir;
+        mVariantAssetDir = variantAssetDir;
+        mPackageName = packageName;
+        mClassName = className != null ? className : DEFAULT_CLASS_NAME;
+        mDebugLogging = debugLogging;
+        log("CrateGenerator constructed\n" +
+                "    Output: " + mBaseOutputDir + "\n" +
+                "    Asset: " + mVariantAssetDir + "\n" +
+                "    Package: " + mPackageName + "\n" +
+                "    Class: " + mClassName + "\n" +
+                "    Logging: " + mDebugLogging);
+    }
+
+    public void buildCrate() {
         long startNanos = System.nanoTime();
-        File variantDir = new File(variantAssetDir);
+        File variantDir = new File(mVariantAssetDir);
         if (!variantDir.exists() || !variantDir.isDirectory()) {
+            log("Asset directory does not exist, aborting");
             return;
         }
 
         try {
-            brewJava(variantDir, variantAssetDir, packageName).writeTo(new File(baseOutputDir));
+            brewJava(variantDir, mVariantAssetDir, mPackageName).writeTo(new File(mBaseOutputDir));
         } catch (IOException e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Crate: Failed to generate java");
+            logError("Failed to generate java", e, true);
         }
 
         long lengthMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
         log("Time to build was " + lengthMillis + "ms");
     }
 
-    public static boolean isCrateHashValid(@NonNull String crateOutputFile) {
+    public boolean isCrateHashValid() {
+        String crateOutputFile = mBaseOutputDir + '/' + mPackageName.replace('.', '/') + "/" + mClassName + ".java";
         long startNanos = System.nanoTime();
         File file = new File(crateOutputFile);
-        boolean isHashValid = file.exists() && file.isFile() && CrateHasher.isHashValid(file, CRATE_HASH);
+
+        boolean returnValue = false;
+        if (!file.exists()) {
+            log("File " + crateOutputFile + " doesn't exist, hash invalid");
+        } else if (!file.isFile()) {
+            log("File " + crateOutputFile + " is not a file (?), hash invalid");
+        } else {
+            returnValue = CrateHasher.isHashValid(file, CRATE_HASH);
+        }
 
         long lengthMillis = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startNanos);
-        log("Hash check took " + lengthMillis + "ms, was valid: " + isHashValid);
-        return isHashValid;
+        log("Hash check took " + lengthMillis + "ms, was valid: " + returnValue);
+        return returnValue;
     }
 
-    private static void log(@NonNull String message) {
-        if (DEBUG) {
-            System.out.println("Crate: " + message);
+    private void logError(@NonNull String message, @NonNull Throwable error, boolean throwError) {
+        log.error("Crate: " + message, error);
+        if (throwError) {
+            throw new IllegalStateException("Crate: Fatal Exception");
+        }
+    }
+
+    private void log(@NonNull String message) {
+        if (mDebugLogging) {
+            log.warn("Crate: " + message);
         }
     }
 
     @NonNull
-    private static JavaFile brewJava(@NonNull File variantDir,
-                                     @NonNull String variantAssetDir,
-                                     @NonNull String packageName) {
+    private JavaFile brewJava(@NonNull File variantDir,
+                              @NonNull String variantAssetDir,
+                              @NonNull String packageName) {
 
-        TypeSpec.Builder builder = TypeSpec.classBuilder("Crate")
+        TypeSpec.Builder builder = TypeSpec.classBuilder(mClassName)
                 .addModifiers(PUBLIC, FINAL)
                 .addType(createAssetClass())
                 .addType(createFontAssetClass())
