@@ -5,10 +5,18 @@ import android.support.annotation.Nullable
 @SuppressWarnings("GroovyUnusedDeclaration")
 class CrateExtension {
 
-    // TODO: Add extension to use instance instead of static fields, for GC purposes
+    def boolean staticFields = true
     def boolean debugLogging = false
     def String packageName = null
     def String className = null
+
+    def setStaticFields(boolean enable) {
+        staticFields = enable
+    }
+
+    def boolean getStaticFields() {
+        return staticFields
+    }
 
     def setDebugLogging(boolean enable) {
         debugLogging = enable

@@ -8,6 +8,7 @@ Change Log
  *  Feature: Add FULL_LIST field containing all assets for project
  *  Improvement: Make list fields unmodifiable
  *  Feature: Add Gradle DSL extension for toggling debug logging and setting output package/class name
+ *  Feature: Add option to use instance fields rather than static, to reduce ongoing memory requirements
 
 
 ## Version 0.1.1

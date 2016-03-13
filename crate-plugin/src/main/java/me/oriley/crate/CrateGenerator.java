@@ -64,23 +64,28 @@ public final class CrateGenerator {
     @NonNull
     private final String mClassName;
 
+    private final boolean mStaticFields;
+
     private final boolean mDebugLogging;
 
     public CrateGenerator(@NonNull String baseOutputDir,
                           @NonNull String variantAssetDir,
                           @NonNull String packageName,
                           @Nullable String className,
+                          boolean staticFields,
                           boolean debugLogging) {
         mBaseOutputDir = baseOutputDir;
         mVariantAssetDir = variantAssetDir;
         mPackageName = packageName;
         mClassName = className != null ? className : DEFAULT_CLASS_NAME;
+        mStaticFields = staticFields;
         mDebugLogging = debugLogging;
         log("CrateGenerator constructed\n" +
                 "    Output: " + mBaseOutputDir + "\n" +
                 "    Asset: " + mVariantAssetDir + "\n" +
                 "    Package: " + mPackageName + "\n" +
                 "    Class: " + mClassName + "\n" +
+                "    Static: " + mStaticFields + "\n" +
                 "    Logging: " + mDebugLogging);
     }
 
@@ -209,17 +214,18 @@ public final class CrateGenerator {
 
     @NonNull
     private String[] getComments() {
-        return new String[] { CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName};
+        return new String[] { CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName, "Static: " + mStaticFields};
     }
 
-    private static void listFiles(@NonNull TreeMap<String, Asset> allAssets,
-                                  @NonNull TypeSpec.Builder parentBuilder,
-                                  @NonNull String classPathString,
-                                  @NonNull File directory,
-                                  @NonNull String variantAssetDir,
-                                  boolean root) {
+    private void listFiles(@NonNull TreeMap<String, Asset> allAssets,
+                           @NonNull TypeSpec.Builder parentBuilder,
+                           @NonNull String classPathString,
+                           @NonNull File directory,
+                           @NonNull String variantAssetDir,
+                           boolean root) {
 
-        TypeSpec.Builder builder = TypeSpec.classBuilder(root ? ASSETS : directory.getName())
+        String rootName = root ? ASSETS : directory.getName();
+        TypeSpec.Builder builder = TypeSpec.classBuilder(makeClassName(rootName))
                 .addModifiers(PUBLIC, STATIC, FINAL);
 
         List<File> files = getFileList(directory);
@@ -265,10 +271,23 @@ public final class CrateGenerator {
             builder.addField(createListField(listType, "LIST", assetMap));
         }
         parentBuilder.addType(builder.build());
+
+        if (!mStaticFields) {
+            parentBuilder.addField(createNonStaticClassField(rootName));
+        }
     }
 
     @NonNull
-    private static TypeSpec createAssetClass() {
+    private String makeClassName(@NonNull String rootClassName) {
+        if (mStaticFields) {
+            return rootClassName;
+        } else {
+            return capitalise(rootClassName + "Class");
+        }
+    }
+
+    @NonNull
+    private TypeSpec createAssetClass() {
         String[] fields = Asset.getFields();
 
         TypeSpec.Builder builder = TypeSpec.classBuilder(Asset.getTypeName())
@@ -284,7 +303,7 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static TypeSpec createFontAssetClass() {
+    private TypeSpec createFontAssetClass() {
         TypeSpec.Builder builder = TypeSpec.classBuilder(FontAsset.getTypeName())
                 .addModifiers(PUBLIC, STATIC)
                 .superclass(TypeVariableName.get(Asset.getTypeName()));
@@ -300,7 +319,7 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static MethodSpec createCrateConstructor() {
+    private MethodSpec createCrateConstructor() {
         String context = "context";
 
         return MethodSpec.constructorBuilder()
@@ -311,7 +330,7 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static MethodSpec createConstructor(@NonNull String... fields) {
+    private MethodSpec createConstructor(@NonNull String... fields) {
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE);
 
@@ -324,10 +343,10 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static MethodSpec createInputStreamMethod(@NonNull String paramName,
-                                                      @NonNull TypeName typeName,
-                                                      boolean mode,
-                                                      @NonNull Modifier... modifiers) {
+    private MethodSpec createInputStreamMethod(@NonNull String paramName,
+                                               @NonNull TypeName typeName,
+                                               boolean mode,
+                                               @NonNull Modifier... modifiers) {
         MethodSpec.Builder builder = MethodSpec.methodBuilder("get");
 
         builder.addModifiers(modifiers)
@@ -348,7 +367,7 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static MethodSpec createGetManagerMethod() {
+    private MethodSpec createGetManagerMethod() {
         return MethodSpec.methodBuilder("getManager")
                 .addModifiers(PRIVATE)
                 .addAnnotation(createNullabilityAnnotation(false))
@@ -361,7 +380,7 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static MethodSpec createCloseManagerMethod() {
+    private MethodSpec createCloseManagerMethod() {
         return MethodSpec.methodBuilder("close")
                 .addModifiers(PUBLIC)
                 .beginControlFlow("if (mAssetManager != null)")
@@ -372,7 +391,7 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static MethodSpec createSubConstructor(@NonNull String[] parentFields, @NonNull String[] fields) {
+    private MethodSpec createSubConstructor(@NonNull String[] parentFields, @NonNull String[] fields) {
         MethodSpec.Builder builder = MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PRIVATE);
 
@@ -391,12 +410,18 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static FieldSpec createListField(@NonNull TypeName typeName,
-                                             @NonNull String fieldName,
-                                             @NonNull Map<String, Asset> assets) {
-        return FieldSpec.builder(typeName, fieldName)
-                .addModifiers(PUBLIC, STATIC, FINAL)
-                .initializer(CodeBlock.builder()
+    private FieldSpec createListField(@NonNull TypeName typeName,
+                                      @NonNull String fieldName,
+                                      @NonNull Map<String, Asset> assets) {
+        FieldSpec.Builder builder = FieldSpec.builder(typeName, fieldName);
+
+        if (mStaticFields) {
+            builder.addModifiers(PUBLIC, STATIC, FINAL);
+        } else {
+            builder.addModifiers(PUBLIC, FINAL);
+        }
+
+        return builder.initializer(CodeBlock.builder()
                         .add("$T.unmodifiableList($T.asList(", Collections.class, Arrays.class)
                         .add(Joiner.on(", ").join(Iterators.transform(assets.entrySet().iterator(),
                                 new Function<Map.Entry<String, Asset>, String>() {
@@ -410,17 +435,38 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static FieldSpec createAssetField(@NonNull Asset asset) {
-        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(Asset.getTypeName()), asset.getFieldName())
-                .addModifiers(PUBLIC, STATIC, FINAL);
+    private FieldSpec createNonStaticClassField(@NonNull String rootName) {
+        TypeName typeName = TypeVariableName.get(makeClassName(rootName));
+        return FieldSpec.builder(typeName, rootName)
+                .addModifiers(PUBLIC, FINAL)
+                .initializer("new $T()", typeName)
+                .build();
+    }
+
+    @NonNull
+    private FieldSpec createAssetField(@NonNull Asset asset) {
+        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(Asset.getTypeName()), asset.getFieldName());
+
+        if (mStaticFields) {
+            builder.addModifiers(PUBLIC, STATIC, FINAL);
+        } else {
+            builder.addModifiers(PUBLIC, FINAL);
+        }
+
         asset.addInitialiser(builder);
         return builder.build();
     }
 
     @NonNull
-    private static FieldSpec createFontAssetField(@NonNull FontAsset asset) {
-        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(FontAsset.getTypeName()), asset.getFieldName())
-                .addModifiers(PUBLIC, STATIC, FINAL);
+    private FieldSpec createFontAssetField(@NonNull FontAsset asset) {
+        FieldSpec.Builder builder = FieldSpec.builder(TypeVariableName.get(FontAsset.getTypeName()), asset.getFieldName());
+
+        if (mStaticFields) {
+            builder.addModifiers(PUBLIC, STATIC, FINAL);
+        } else {
+            builder.addModifiers(PUBLIC, FINAL);
+        }
+
         asset.addInitialiser(builder);
         return builder.build();
     }

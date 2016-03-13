@@ -50,6 +50,7 @@ class CratePlugin implements Plugin<Project> {
                 String flavorString = capitalise(variant.flavorName) + capitalise(variant.buildType.name)
 
                 boolean debugLogging = project.crate.debugLogging
+                boolean staticFields = project.crate.staticFields
                 String packageName = project.crate.packageName
                 if (StringUtils.isEmpty(packageName)) {
                     packageName = findPackageName(project)
@@ -71,7 +72,7 @@ class CratePlugin implements Plugin<Project> {
 
                 //noinspection GrUnresolvedAccess,GroovyAssignabilityCheck
                 CrateGenerator generator = new CrateGenerator(variantBuildDir, variantAssetDir, packageName, className,
-                        debugLogging)
+                        staticFields, debugLogging)
                 Task mergeAssetsTask = project.tasks["merge${flavorString}Assets"]
                 mergeAssetsTask.doLast {
                     generator.buildCrate()
