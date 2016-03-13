@@ -10,6 +10,7 @@ Change Log
  *  Feature: Add Gradle DSL extension for toggling debug logging and setting output package/class name
  *  Feature: Add option to use instance fields rather than static, to reduce ongoing memory requirements
  *  Fix: Don't close AssetManager as it can cause issues
+ *  Feature: Add typeface retrieval method and caching for font assets
 
 
 ## Version 0.1.1

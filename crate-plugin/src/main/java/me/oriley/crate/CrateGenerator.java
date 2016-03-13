@@ -40,13 +40,18 @@ import static org.apache.commons.lang.StringUtils.equalsIgnoreCase;
 
 public final class CrateGenerator {
 
-    private static final String DEFAULT_CLASS_NAME = "Crate";
+    private static final String CRATE = "Crate";
     private static final String CRATE_HASH = CrateHasher.getActualHash();
     private static final String ASSETS = "assets";
-    private static final String ASSET__MANAGER = "assetManager";
+    private static final String CONTEXT = "context";
+    private static final String TYPEFACE = "typeface";
+    private static final String TYPEFACE_CACHE = "typefaceCache";
+    private static final String ASSET_MANAGER = "AssetManager";
 
-    private static final ClassName ASSETMANAGER_CLASS = ClassName.get("android.content.res", "AssetManager");
-    private static final ClassName CONTEXT_CLASS = ClassName.get("android.content", "Context");
+    private static final ClassName LOG_CLASS = ClassName.get("android.util", "Log");
+    private static final ClassName ASSETMANAGER_CLASS = ClassName.get("android.content.res", ASSET_MANAGER);
+    private static final ClassName CONTEXT_CLASS = ClassName.get("android.content", capitalise(CONTEXT));
+    private static final ClassName TYPEFACE_CLASS = ClassName.get("android.graphics", capitalise(TYPEFACE));
 
     private static final String OTF_EXTENSION = "otf";
     private static final String TTF_EXTENSION = "ttf";
@@ -78,7 +83,7 @@ public final class CrateGenerator {
         mBaseOutputDir = baseOutputDir;
         mVariantAssetDir = variantAssetDir;
         mPackageName = packageName;
-        mClassName = className != null ? className : DEFAULT_CLASS_NAME;
+        mClassName = className != null ? className : CRATE;
         mStaticFields = staticFields;
         mDebugLogging = debugLogging;
         log("CrateGenerator constructed\n" +
@@ -183,7 +188,8 @@ public final class CrateGenerator {
                 .addType(createFontAssetClass())
                 .addAnnotation(createSuppressWarningAnnotation("unused"));
 
-        builder.addField(createField(ASSETMANAGER_CLASS, false, PRIVATE, FINAL));
+        builder.addField(createField(ASSETMANAGER_CLASS, false, PRIVATE, FINAL))
+                .addField(createTypefaceCacheField());
 
         TreeMap<String, Asset> allAssets = new TreeMap<>();
         listFiles(allAssets, builder, ASSETS, variantDir, variantAssetDir, true);
@@ -194,11 +200,10 @@ public final class CrateGenerator {
             builder.addField(createListField(listType, "FULL_LIST", allAssets));
         }
 
-        String asset = "asset";
-        TypeName assetType = TypeVariableName.get(Asset.getTypeName());
         builder.addMethod(createCrateConstructor())
-                .addMethod(createInputStreamMethod(asset, assetType, false, PUBLIC))
-                .addMethod(createInputStreamMethod(asset, assetType, true, PUBLIC));
+                .addMethod(createInputStreamMethod(false))
+                .addMethod(createInputStreamMethod(true))
+                .addMethod(createTypefaceMethod());
 
         JavaFile.Builder javaBuilder = JavaFile.builder(packageName, builder.build())
                 .indent("    ");
@@ -212,7 +217,7 @@ public final class CrateGenerator {
 
     @NonNull
     private String[] getComments() {
-        return new String[] { CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName, "Static: " + mStaticFields};
+        return new String[]{CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName, "Static: " + mStaticFields};
     }
 
     private void listFiles(@NonNull TreeMap<String, Asset> allAssets,
@@ -293,7 +298,7 @@ public final class CrateGenerator {
                 .addMethod(createConstructor(fields));
 
         for (String field : fields) {
-            builder.addField(createStringField(toInstance(field), false, PRIVATE, FINAL))
+            builder.addField(createStringField(toInstance(field), false, FINAL))
                     .addMethod(createGetter(field, String.class, false, PUBLIC));
         }
 
@@ -308,7 +313,7 @@ public final class CrateGenerator {
 
         String[] fields = FontAsset.getFields();
         for (String field : fields) {
-            builder.addField(createStringField(toInstance(field), false, PRIVATE, FINAL))
+            builder.addField(createStringField(toInstance(field), false, FINAL))
                     .addMethod(createGetter(field, String.class, false, PUBLIC));
         }
 
@@ -318,12 +323,10 @@ public final class CrateGenerator {
 
     @NonNull
     private MethodSpec createCrateConstructor() {
-        String context = "context";
-
         return MethodSpec.constructorBuilder()
                 .addModifiers(Modifier.PUBLIC)
-                .addParameter(createParameter(context, CONTEXT_CLASS, false))
-                .addStatement("$N = $N.getApplicationContext().getAssets()", toInstance(ASSET__MANAGER), context)
+                .addParameter(createParameter(CONTEXT, CONTEXT_CLASS, false))
+                .addStatement("$N = $N.getApplicationContext().getAssets()", toInstance(ASSET_MANAGER), CONTEXT)
                 .build();
     }
 
@@ -341,24 +344,65 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private MethodSpec createInputStreamMethod(@NonNull String paramName,
-                                               @NonNull TypeName typeName,
-                                               boolean mode,
-                                               @NonNull Modifier... modifiers) {
+    private FieldSpec createTypefaceCacheField() {
+        TypeName mapType = ParameterizedTypeName.get(ClassName.get(HashMap.class), ClassName.get(String.class), TYPEFACE_CLASS);
+        return FieldSpec.builder(mapType, toInstance(TYPEFACE_CACHE))
+                .addModifiers(PRIVATE, FINAL)
+                .addAnnotation(createNullabilityAnnotation(false))
+                .initializer(CodeBlock.builder().add("new $T()", mapType).build())
+                .build();
+    }
+
+    @NonNull
+    private MethodSpec createTypefaceMethod() {
+        String fontAsset = "fontAsset";
+        String localVarKey = "key";
+
+        TypeName assetType = TypeVariableName.get(FontAsset.getTypeName());
+        return MethodSpec.methodBuilder("getTypeface")
+                .addModifiers(PUBLIC)
+                .addAnnotation(createNullabilityAnnotation(true))
+                .addParameter(createParameter(fontAsset, assetType, false))
+                .addCode(CodeBlock.builder()
+                        .addStatement("$T $N = $N.mPath", String.class, localVarKey, fontAsset)
+                        .beginControlFlow("if ($N.containsKey($N))", toInstance(TYPEFACE_CACHE), localVarKey)
+                        .addStatement("return $N.get($N)", toInstance(TYPEFACE_CACHE), localVarKey)
+                        .endControlFlow()
+                        .addStatement("$T $N = null", TYPEFACE_CLASS, TYPEFACE)
+                        .beginControlFlow("try")
+                        .addStatement("$N = $T.createFromAsset($N, $N.mPath)", TYPEFACE, TYPEFACE_CLASS, toInstance(ASSET_MANAGER), fontAsset)
+                        .nextControlFlow("catch ($T e)", RuntimeException.class)
+                        .addStatement("$T.e($S, \"Failed to load typeface for key: \" + $N, e)", LOG_CLASS, CRATE, localVarKey)
+                        .addStatement("e.printStackTrace()")
+                        .nextControlFlow("finally")
+                        .beginControlFlow("if ($N != null)", TYPEFACE)
+                        .addStatement("$N.put($N, $N)", toInstance(TYPEFACE_CACHE), localVarKey, TYPEFACE)
+                        .endControlFlow()
+                        .endControlFlow()
+                        .addStatement("return $N", TYPEFACE)
+                        .build())
+                .returns(TYPEFACE_CLASS)
+                .build();
+    }
+
+    @NonNull
+    private MethodSpec createInputStreamMethod(boolean mode) {
+        String asset = "asset";
+        TypeName assetType = TypeVariableName.get(Asset.getTypeName());
         MethodSpec.Builder builder = MethodSpec.methodBuilder("get");
 
-        builder.addModifiers(modifiers)
+        builder.addModifiers(PUBLIC)
                 .addAnnotation(createNullabilityAnnotation(false))
-                .addParameter(createParameter(paramName, typeName, false))
+                .addParameter(createParameter("asset", assetType, false))
                 .addException(IOException.class)
                 .returns(InputStream.class);
 
         String modeName = "mode";
         if (mode) {
             builder.addParameter(createPrimitiveParameter(modeName, int.class))
-                    .addStatement("return $N.open($N.mPath, $N)", toInstance(ASSET__MANAGER), paramName, modeName);
+                    .addStatement("return $N.open($N.mPath, $N)", toInstance(ASSET_MANAGER), asset, modeName);
         } else {
-            builder.addStatement("return $N.open($N.mPath)", toInstance(ASSET__MANAGER), paramName);
+            builder.addStatement("return $N.open($N.mPath)", toInstance(ASSET_MANAGER), asset);
         }
 
         return builder.build();
@@ -396,15 +440,15 @@ public final class CrateGenerator {
         }
 
         return builder.initializer(CodeBlock.builder()
-                        .add("$T.unmodifiableList($T.asList(", Collections.class, Arrays.class)
-                        .add(Joiner.on(", ").join(Iterators.transform(assets.entrySet().iterator(),
-                                new Function<Map.Entry<String, Asset>, String>() {
-                                    @Override
-                                    public String apply(Map.Entry<String, Asset> entry) {
-                                        return entry != null ? entry.getKey() : null;
-                                    }
-                                })) + "))")
-                        .build())
+                .add("$T.unmodifiableList($T.asList(", Collections.class, Arrays.class)
+                .add(Joiner.on(", ").join(Iterators.transform(assets.entrySet().iterator(),
+                        new Function<Map.Entry<String, Asset>, String>() {
+                            @Override
+                            public String apply(Map.Entry<String, Asset> entry) {
+                                return entry != null ? entry.getKey() : null;
+                            }
+                        })) + "))")
+                .build())
                 .build();
     }
 
@@ -413,6 +457,7 @@ public final class CrateGenerator {
         TypeName typeName = TypeVariableName.get(makeClassName(rootName));
         return FieldSpec.builder(typeName, rootName)
                 .addModifiers(PUBLIC, FINAL)
+                .addAnnotation(createNullabilityAnnotation(false))
                 .initializer("new $T()", typeName)
                 .build();
     }
