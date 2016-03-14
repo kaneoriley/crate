@@ -3,6 +3,7 @@ Change Log
 
 ## Version 0.3 WIP
 
+ *  Improvement: Add `clearTypefaceCache()`/`clear()` methods for reclaiming cached memory
  *  Feature: Add ImageAsset class for JPG/JPEG/PNG/GIF assets, with width and height fields
  *  Feature: Implement convenience getter for ImageAsset bitmaps, and bitmap caching
 

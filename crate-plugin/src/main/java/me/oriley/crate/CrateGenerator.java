@@ -232,7 +232,9 @@ public final class CrateGenerator {
                 .addMethod(createInputStreamMethod(true))
                 .addMethod(createBitmapMethod())
                 .addMethod(createTypefaceMethod())
+                .addMethod(createClearMethod())
                 .addMethod(createBitmapClearMethod())
+                .addMethod(createTypefaceClearMethod());
 
         JavaFile.Builder javaBuilder = JavaFile.builder(packageName, builder.build())
                 .indent("    ");
@@ -627,6 +629,23 @@ public final class CrateGenerator {
                 .addStatement("$N.recycle()", BITMAP)
                 .endControlFlow()
                 .addStatement("$N.clear()", asFieldName(BITMAP_CACHE))
+                .build();
+    }
+
+    @NonNull
+    private MethodSpec createTypefaceClearMethod() {
+        return MethodSpec.methodBuilder(CLEAR + capitalise(TYPEFACE_CACHE))
+                .addModifiers(PUBLIC)
+                .addStatement("$N.clear()", asFieldName(TYPEFACE_CACHE))
+                .build();
+    }
+
+    @NonNull
+    private MethodSpec createClearMethod() {
+        return MethodSpec.methodBuilder(CLEAR)
+                .addModifiers(PUBLIC)
+                .addStatement("$N()", CLEAR + capitalise(BITMAP_CACHE))
+                .addStatement("$N()", CLEAR + capitalise(TYPEFACE_CACHE))
                 .build();
     }
 
