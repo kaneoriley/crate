@@ -1,6 +1,6 @@
 [![Release](https://jitpack.io/v/com.github.oriley-me/crate.svg)](https://jitpack.io/#com.github.oriley-me/crate) [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![Build Status](https://travis-ci.org/oriley-me/crate.svg?branch=master)](https://travis-ci.org/oriley-me/crate) [![Dependency Status](https://www.versioneye.com/user/projects/56e39ab7df573d00472cd399/badge.svg?style=flat)](https://www.versioneye.com/user/projects/56e39ab7df573d00472cd399)
 
-## Crate
+# Crate
 
 Crate is a simple gradle plugin to generate a list (static by default) of classes for all files/folders included in your projects
 assets directory, for compile time safety. This is similar to how the `R` classes for resources work. It also has the
@@ -71,7 +71,7 @@ for (Crate.Asset asset : Crate.FULL_LIST) {
 If all files in a folder are font files, the `LIST` will be of type `List<FontAsset>`, otherwise the generic
 `List<Asset>` type will be used.
 
-# Gradle Dependency
+## Gradle Dependency
 
  * Add JitPack.io to your repositories list in the root projects build.gradle:
 
@@ -125,10 +125,10 @@ crate {
 
 Now just perform a gradle sync and you're done. You can now have compile time safety with all your projects assets.
 
-# Example
+## Example
 
-As an example of how efficient and useful `Crate` be, here's all the code you will need to display an entire folder of
-fonts in a `RecyclerView`, with full `Typeface` caching and font display names automatically retrieved and set.
+As an example of how efficient and useful `Crate` can be, here's all the code you will need to display an entire folder
+of fonts in a `RecyclerView`, with full `Typeface` caching and font display names automatically retrieved and set.
 
 ```java
 class FontViewHolder extends RecyclerView.ViewHolder {
