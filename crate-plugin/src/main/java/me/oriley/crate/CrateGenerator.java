@@ -248,7 +248,8 @@ public final class CrateGenerator {
 
     @NonNull
     private String[] getComments() {
-        return new String[]{CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName, "Static: " + mStaticMode};
+        return new String[]{CRATE_HASH, "Package: " + mPackageName, "Class: " + mClassName, "Static: " + mStaticMode,
+                "Debug: " + mDebugLogging};
     }
 
     private void listFiles(@NonNull TreeMap<String, Asset> allAssets,
@@ -579,6 +580,7 @@ public final class CrateGenerator {
                 .addCode(CodeBlock.builder()
                         .addStatement("$T $N = $N.mPath", String.class, KEY, fontAsset)
                         .beginControlFlow("if ($N.containsKey($N))", cacheField, KEY)
+                        .addStatement("if ($N) $T.d($S, \"Using cached typeface for key: \" + $N)", DEBUG, LOG_CLASS, mClassName, KEY)
                         .addStatement("return $N.get($N)", cacheField, KEY)
                         .endControlFlow()
                         .addStatement("$T $N = null", TYPEFACE_CLASS, TYPEFACE)
@@ -589,6 +591,7 @@ public final class CrateGenerator {
                         .addStatement("e.printStackTrace()")
                         .nextControlFlow("finally")
                         .beginControlFlow("if ($N != null)", TYPEFACE)
+                        .addStatement("if ($N) $T.d($S, \"Typeface loaded for key: \" + $N)", DEBUG, LOG_CLASS, mClassName, KEY)
                         .addStatement("$N.put($N, $N)", cacheField, KEY, TYPEFACE)
                         .endControlFlow()
                         .addStatement("return $N", TYPEFACE)
