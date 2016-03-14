@@ -16,8 +16,6 @@
 
 package me.oriley.crate
 
-import android.support.annotation.NonNull
-import org.apache.commons.lang.StringUtils
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.ProjectConfigurationException
@@ -50,15 +48,6 @@ class CratePlugin implements Plugin<Project> {
                 String flavorString = capitalise(variant.flavorName) + capitalise(variant.buildType.name)
 
                 boolean debugLogging = project.crate.debugLogging
-                boolean staticMode = project.crate.staticMode
-                String packageName = project.crate.packageName
-                if (StringUtils.isEmpty(packageName)) {
-                    packageName = findPackageName(project)
-                    log("Found package name " + packageName + " in manifest", debugLogging)
-                } else {
-                    log("Got package name " + packageName + " from extension", debugLogging)
-                }
-                String className = project.crate.className
 
                 String variantBuildDir = "${project.buildDir}/generated/source/crate/${variant.dirName}"
                 String variantAssetDir = "${project.buildDir}/intermediates/assets/${variant.dirName}"
@@ -71,8 +60,7 @@ class CratePlugin implements Plugin<Project> {
                 }
 
                 //noinspection GrUnresolvedAccess,GroovyAssignabilityCheck
-                CrateGenerator generator = new CrateGenerator(variantBuildDir, variantAssetDir, packageName, className,
-                        staticMode, debugLogging)
+                CrateGenerator generator = new CrateGenerator(variantBuildDir, variantAssetDir, debugLogging)
                 Task mergeAssetsTask = project.tasks["merge${flavorString}Assets"]
                 mergeAssetsTask.doLast {
                     generator.buildCrate()
@@ -91,17 +79,6 @@ class CratePlugin implements Plugin<Project> {
                 variant.registerJavaGeneratingTask(mergeAssetsTask, project.file(variantBuildDir))
             }
         }
-    }
-
-    private static void log(@NonNull String message, boolean enabled) {
-        if (enabled) {
-            println("Crate: " + message)
-        }
-    }
-
-    private static String findPackageName(project) {
-        File manifestFile = project.android.sourceSets.main.manifest.srcFile
-        return (new XmlParser()).parse(manifestFile).@package
     }
 
     private static String capitalise(final String line) {

@@ -1,0 +1,7 @@
+apply plugin: 'java'
+apply plugin: 'nexus'
+
+//noinspection GroovyUnusedAssignment
+targetCompatibility = JavaVersion.VERSION_1_6
+//noinspection GroovyUnusedAssignment
+sourceCompatibility = JavaVersion.VERSION_1_6

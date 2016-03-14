@@ -3,6 +3,14 @@ Change Log
 
 ## Version 0.3 WIP
 
+### Major refactor - API breaking changes
+
+ *  Refactor to include runtime component to reduce amount of JavaPoet usage
+ *  Remove static mode (added note in README about how to setup for static access)
+ *  Remove convenience methods for getters. All assets and folder classes are now static to avoid memory leaks
+
+### Other changes
+
  *  Improvement: Add `clearTypefaceCache()`/`clear()` methods for reclaiming cached memory
  *  Feature: Add ImageAsset class for JPG/JPEG/PNG/GIF assets, with width and height fields
  *  Feature: Implement convenience getter for ImageAsset bitmaps, and bitmap caching
