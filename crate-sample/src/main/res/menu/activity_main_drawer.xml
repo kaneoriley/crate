@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <group android:checkableBehavior="single">
+        <item
+            android:id="@+id/nav_fonts"
+            android:icon="@drawable/ic_menu_camera"
+            android:title="Fonts" />
+        <item
+            android:id="@+id/nav_images"
+            android:icon="@drawable/ic_menu_gallery"
+            android:title="Images" />
+        <item
+            android:id="@+id/nav_svgs"
+            android:icon="@drawable/ic_menu_slideshow"
+            android:title="SVGs" />
+    </group>
+
+</menu>

@@ -1,5 +1,2 @@
-include ':crate-plugin'
-include ':crate-common'
-include ':crate-runtime'
-include ':crate-dummy'
+include ':crate-plugin', ':crate-sample', ':crate-common', ':crate-runtime', ':crate-dummy'
 
