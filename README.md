@@ -174,4 +174,4 @@ class FontRecyclerAdapter extends RecyclerView.Adapter<FontViewHolder> {
 
 Just add that to any `Activity` hosting a `RecyclerView`, create and set the `FontRecyclerAdapter` and voilà:
 
-![Demo](https://raw.githubusercontent.com/oriley-me/crate/master/crate-demo.png)
+![Demo](artwork/font-demo.png)
