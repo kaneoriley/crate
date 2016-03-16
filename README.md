@@ -1,6 +1,7 @@
 [![Release](https://jitpack.io/v/com.github.oriley-me/crate.svg)](https://jitpack.io/#com.github.oriley-me/crate) [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![Build Status](https://travis-ci.org/oriley-me/crate.svg?branch=master)](https://travis-ci.org/oriley-me/crate) [![Dependency Status](https://www.versioneye.com/user/projects/56e39ab7df573d00472cd399/badge.svg?style=flat)](https://www.versioneye.com/user/projects/56e39ab7df573d00472cd399)
 
 # Crate
+![Logo](artwork/icon.png)
 
 Crate is a simple gradle plugin to generate a list (static by default) of classes for all files/folders included in your projects
 assets directory, for compile time safety. This is similar to how the `R` classes for resources work. It also has the
