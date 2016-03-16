@@ -42,6 +42,10 @@ import static me.oriley.crate.utils.JavaPoetUtils.Nullability.NONNULL;
 
 public final class CrateGenerator {
 
+    private enum FolderClass {
+        NONE, FONT, IMAGE, SVG, ASSET
+    }
+
     // Deprecated options
     private static final String PACKAGE_NAME = CrateGenerator.class.getPackage().getName();
     private static final String CLASS_NAME = "CrateDictionary";
@@ -54,6 +58,7 @@ public final class CrateGenerator {
 
     private static final List<String> FONT_EXTENSIONS = Arrays.asList("otf", "ttf");
     private static final List<String> IMAGE_EXTENSIONS = Arrays.asList("jpg", "jpeg", "gif", "png");
+    private static final List<String> SVG_EXTENSIONS = Arrays.asList("svg", "svgz");
 
     private static final Logger log = LoggerFactory.getLogger(CrateGenerator.class.getSimpleName());
 
@@ -205,8 +210,7 @@ public final class CrateGenerator {
 
         List<File> files = getFileList(directory);
         TreeMap<String, Asset> assetMap = new TreeMap<>();
-        boolean isFontFolder = true;
-        boolean isImageFolder = true;
+        FolderClass folderClass = FolderClass.NONE;
 
         for (File file : files) {
             if (file.isDirectory()) {
@@ -228,13 +232,12 @@ public final class CrateGenerator {
                 String fileExtension = getFileExtension(fileName).toLowerCase(US);
                 AssetHolder asset;
                 if (FONT_EXTENSIONS.contains(fileExtension)) {
-                    isImageFolder = false;
+                    folderClass = checkFolderClass(folderClass, FolderClass.FONT);
                     String fontName = getFontName(file.getPath());
                     asset = new FontAssetHolder(fieldName, filePath, fileName, fontName != null ? fontName : fileName);
                     builder.addField(createFontAssetField((FontAssetHolder) asset));
                 } else if (IMAGE_EXTENSIONS.contains(fileExtension)) {
-                    isFontFolder = false;
-
+                    folderClass = checkFolderClass(folderClass, FolderClass.IMAGE);
                     int width = 0;
                     int height = 0;
                     try {
@@ -249,9 +252,12 @@ public final class CrateGenerator {
 
                     asset = new ImageAssetHolder(fieldName, filePath, fileName, width, height);
                     builder.addField(createImageAssetField((ImageAssetHolder) asset));
+                } else if (SVG_EXTENSIONS.contains(fileExtension)) {
+                    folderClass = checkFolderClass(folderClass, FolderClass.SVG);
+                    asset = new SvgAssetHolder(fieldName, filePath, fileName);
+                    builder.addField(createSvgAssetField((SvgAssetHolder) asset));
                 } else {
-                    isFontFolder = false;
-                    isImageFolder = false;
+                    folderClass = FolderClass.ASSET;
                     asset = new AssetHolder(fieldName, filePath, fileName);
                     builder.addField(createAssetField(asset));
                 }
@@ -261,8 +267,7 @@ public final class CrateGenerator {
         }
 
         if (!assetMap.isEmpty()) {
-            TypeName elementType = TypeVariableName.get(isFontFolder ? FontAsset.class :
-                    isImageFolder ? ImageAsset.class : Asset.class);
+            TypeName elementType = TypeVariableName.get(getFolderClass(folderClass));
             TypeName listType = ParameterizedTypeName.get(ClassName.get(List.class), elementType);
             builder.addField(createListField(listType, "LIST", assetMap));
         }
@@ -275,6 +280,33 @@ public final class CrateGenerator {
 
         parentBuilder.addType(builder.build());
         parentBuilder.addField(createNonStaticClassField(rootName));
+    }
+
+    @NonNull
+    private FolderClass checkFolderClass(@NonNull FolderClass original, @NonNull FolderClass current) {
+        if (original == FolderClass.NONE) {
+            return current;
+        } else if (original != current) {
+            return FolderClass.ASSET;
+        } else {
+            return original;
+        }
+    }
+
+    @NonNull
+    private Class getFolderClass(@NonNull FolderClass folderAssetClass) {
+        switch (folderAssetClass) {
+            case NONE:
+            case ASSET:
+            default:
+                return Asset.class;
+            case FONT:
+                return FontAsset.class;
+            case IMAGE:
+                return ImageAsset.class;
+            case SVG:
+                return SvgAsset.class;
+        }
     }
 
     @NonNull
@@ -326,6 +358,14 @@ public final class CrateGenerator {
     @NonNull
     private FieldSpec createImageAssetField(@NonNull ImageAssetHolder asset) {
         FieldSpec.Builder builder = FieldSpec.builder(ImageAsset.class, asset.mFieldName)
+                .addModifiers(PUBLIC, FINAL);
+        asset.addInitialiser(builder);
+        return builder.build();
+    }
+
+    @NonNull
+    private FieldSpec createSvgAssetField(@NonNull SvgAssetHolder asset) {
+        FieldSpec.Builder builder = FieldSpec.builder(SvgAsset.class, asset.mFieldName)
                 .addModifiers(PUBLIC, FINAL);
         asset.addInitialiser(builder);
         return builder.build();
@@ -455,6 +495,20 @@ public final class CrateGenerator {
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
             builder.initializer("new $T($S, $S, $L, $L)", ImageAsset.class, mPath, mName, mWidth, mHeight);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static final class SvgAssetHolder extends AssetHolder {
+
+        private SvgAssetHolder(@NonNull String fieldName,
+                                 @NonNull String path,
+                                 @NonNull String name) {
+            super(fieldName, path, name);
+        }
+
+        public void addInitialiser(@NonNull FieldSpec.Builder builder) {
+            builder.initializer("new $T($S, $S)", SvgAsset.class, mPath, mName);
         }
     }
 }

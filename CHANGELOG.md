@@ -14,6 +14,9 @@ Change Log
  *  Improvement: Add `clearTypefaceCache()`/`clear()` methods for reclaiming cached memory
  *  Feature: Add ImageAsset class for JPG/JPEG/PNG/GIF assets, with width and height fields
  *  Feature: Implement convenience getter for ImageAsset bitmaps, and bitmap caching
+ *  Feature: Add SvgAsset class for SVG/SVGZ assets
+ *  Feature: Implement `getSvgDrawable()` and `getSvgBitmap()` helper methods in `Crate` (requires `com.caverock:androidsvg:1.2.1` dependency)
+ *  Feature: Implement `PictureDrawable` caching to dramatically speedup SVG retrieval
 
 
 ## Version 0.2

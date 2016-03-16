@@ -22,5 +22,6 @@ android {
 dependencies {
     compile project(':crate-common')
     provided project(':crate-dummy')
+    provided 'com.caverock:androidsvg:1.2.1'
     compile 'com.android.support:support-annotations:23.1.1'
 }
