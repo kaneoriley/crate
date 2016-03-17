@@ -3,74 +3,149 @@
 # Crate
 ![Logo](artwork/icon.png)
 
-Crate is a simple gradle plugin to generate a list (static by default) of classes for all files/folders included in your projects
-assets directory, for compile time safety. This is similar to how the `R` classes for resources work. It also has the
-advantage of removing the need to use the notoriously slow `AssetManager.list()` methods.
+Crate is a simple gradle plugin to generate a list of classes for all files/folders included in your projects
+assets directory, for compile time safety. This is how the `R` classes used for referencing resources work. It also has
+the advantage of removing the need to use the notoriously slow `AssetManager.list()` methods.
 
-Also included is a built-in typeface cache to ensure you don't allocate multiple blocks of memory for the same font.
+Included is a built-in caching mechanism for `Typeface`s, `Bitmap`s and `PictureDrawable`s to speed up subsequent access.
 
 No more string literals or typos, all your assets can be accessed with confidence!
 
 Each `Asset` has two methods, `asset.getPath()` will return the full path as required by an `AssetManager`, and
-`asset.getName()`, which will return the filename only. If a file happens to be a TTF/OTF font, the `FontAsset` class
-will be used, which has an extra `fontAsset.getFontName()` method for convenience.
+`asset.getName()`, which will return the filename only.
+There are three subtypes of `Asset`, which contain extra information about the asset (calculated at compile time).
+They are:
 
-To use:
+* FontAsset
 
+Content Types: "application/x-font-otf", "application/x-font-ttf"
+
+Has an extra `fontAsset.getFontName()` method which returns the human readable name embedded in the font.
+
+* ImageAsset
+
+Content Types: "image/jpeg", "image/png", "image/pjpeg", "image/gif", "image/bmp", "image/x-windows-bmp", "image/webp"
+
+Has two extra methods, `imageAsset.getWidth()` and `imageAsset.getHeight()`, which return the calculated width/height
+of the image.
+
+* SvgAsset
+
+Content Types: "image/svg+xml", "image/svg+xml-compressed"
+
+Purely for identification at the moment. Requires adding the `androidsvg` library as a depenency in your module (refer
+to Gradle setup explanation below).
+* TODO: Read in some helpful SVG properties at compile time.
+
+## Usage
+
+To construct the `Crate`, you will need to use the `Crate.Builder` class. Included are methods for turning on the
+individual caches. All caches default to off, so make sure to turn on any that you wish to use.
+
+Note: I would not recommend using the `Bitmap` cache unless you know you have a small quantity of medium to low
+resolution images. For better caching performance of large assets, I'd advise looking into `Picasso` or `Glide` and
+passing the asset path to those, as they are purposely built for it and have fantastic caching mechanisms.
+
+Example construction:
 ```java
-Crate crate = new Crate(context);
-
-// Usage for InputStream
-try {
-    InputStream is = crate.open(Crate.assets.svgs.AWESOME_BACKGROUND_SVG);
-    // Do what you will with the input stream
-} catch (IOException e) {
-    // Handle exception
-}
-
-// Usage for Typeface
-Typeface typeface = crate.getTypeface(Crate.assets.fonts.ROBOTO_SLAB_TTF);
+// In constructor/application
+mCrate = new Crate.Builder(this)
+                .setTypefaceCacheEnabled(true)
+                .setBitmapCacheEnabled(false)
+                .setSvgCacheEnabled(true)
+                .build();
 ```
 
-If you set `staticMode` to false (read below for an explanation), you must use the `Crate` instance to access assets.
-In this situation, I'd strongly suggest storing the `Crate` in a member variable to reduce workload of instantiating,
-and remember to `null` the field when you are done, to ensure it can be garbage collected.
-
-In this mode, each assets has extra methods to directly open the `InputStream`/`Typeface`, as demonstrated below:
+After construction, you can access all your assets easily:
 ```java
-// In constructor
-mCrate = new Crate(context);
-
 // Usage for InputStream
 try {
-    InputStream is = mCrate.assets.svgs.AWESOME_BACKGROUND_SVG.open();
+    Asset asset = mCrate.assets.other.RANDOM_FILE_EXT; // To open assets/other/random_file.ext
+    InputStream is = mCrate.open(asset);
     // Do what you will with the input stream
 } catch (IOException e) {
     // Handle exception
 }
 
-// Usage for Typeface - FontAssets only
-Typeface typeface = mCrate.assets.fonts.ROBOTO_SLAB_TTF.getTypeface();
+// Usage for Typeface (FontAsset)
+FontAsset fontAsset = mCrate.assets.fonts.ROBOTO_SLAB_TTF; // To get assets/fonts/Roboto-Slab.ttf
+Typeface typeface = mCrate.getTypeface(fontAsset);
+
+// Usage for Bitmap (ImageAsset)
+ImageAsset imageAsset = mCrate.assets.images.LARGE_BACKGROUND_JPG; // To open assets/images/large_background.jpg
+Bitmap bitmap = mCrate.getBitmap(imageAsset);
+
+// Usage for PictureDrawable (SvgAsset)
+SvgAsset svgAsset = mCrate.assets.svgs.LOVE_VECTORS_SVG; // To open assets/svgs/love_vectors.svg
+PictureDrawable drawable = mCrate.getSvgDrawable(svgAsset);
 
 // When no longer required
+mCrate.clear();
 mCrate = null;
 ```
 
-You can also retrieve a list of all files in a root directory via:
+If you don't want to use the helper methods in `Crate` to work with assets and would rather just take advantage of the
+compile time safety of the `CrateDictionary`, you can add the following static field to your `Application` class:
+
 ```java
-for (Crate.Asset asset : Crate.assets.fonts.LIST) {
+public static final CrateDictionary.AssetsClass assets = new CrateDictionary().assets;
+```
+This will allow you to retrieve assets statically and use them with an `AssetManager`, like so:
+```java
+try {
+    Asset asset = MyApplication.assets.other.RANDOM_FILE;
+    InputStream is = mAssetManager.open(asset.getPath());
+    // Do what you will with the input stream
+} catch (IOException e) {
+    // Handle exception
+}
+```
+Keep in mind that this will keep all `Asset` reference entries permanently in memory, so if possible use the `Crate`
+instance method and don't forget to `clear()` and `null` it when you're done ;-)
+
+You can also retrieve a list of all `Asset`s in a directory via:
+```java
+for (Asset asset : mCrate.assets.other.LIST) {
     // Perform action
 }
 ```
-Or, for all assets in your project:
+Or, for all `Asset`s in your project:
 ```java
-for (Crate.Asset asset : Crate.FULL_LIST) {
+for (Asset asset : mCrate.assets.FULL_LIST) {
     // Perform action
 }
 ```
 
-If all files in a folder are font files, the `LIST` will be of type `List<FontAsset>`, otherwise the generic
-`List<Asset>` type will be used.
+The `LIST` field for each folder will be of type `List<? extends Asset>`. If all files in a folder are of the same asset
+subtype (`FontAsset`, `ImageAsset` or `SvgAsset`), this concrete type will be used to remove the need for checking and casting.
+In all other cases, the root `Asset` type will be used.
+
+#### Cleanup
+
+`Crate` will not automatically clear any caches, so if you are finished with using them you should call the following
+methods to ensure `Typeface`s can be freed up, or `Bitmap`s are recycled.
+
+```java
+// To clear typeface cache
+mCrate.clearTypefaceCache();
+
+// To recycle all Bitmaps and clear the cache
+mCrate.clearBitmapCache();
+
+// To clear SVG cache
+mCrate.clearSvgCache();
+
+// To clear all caches
+mCrate.clear();
+```
+
+You can also pass in specific assets to clear the caches for, as follows:
+```java
+// Clear a few specific assets
+mCrate.clearTypefaceCache(robotoBoldAsset, robotoSlabAsset);
+mCrate.clearBitmapCache(largeBackgroundAsset);
+mCrate.clearSvgCache(emoji1, emoji2, emoji3);
+```
 
 ## Gradle Dependency
 
@@ -87,7 +162,7 @@ repositories {
 ```gradle
 buildscript {
     dependencies {
-        classpath 'me.oriley:crate:0.2'
+        classpath 'me.oriley.crate:crate-plugin:0.3'
     }
 }
 ```
@@ -96,31 +171,27 @@ If you would like to run a newer version you can change the version number to `-
 branch, or a specific commit hash if you need an exact version. That's the beauty of JitPack. Just beware that API's
 can be subject to change without notice if you don't stick to a release version.
 
- * Apply the plugin to your application or library project:
+ * Apply the plugin to your application or library project, and add the module runtime dependency:
 
 ```gradle
 apply plugin: 'com.android.application' || apply plugin: 'com.android.library'
 apply plugin: 'me.oriley.crate-plugin'
+
+...
+
+dependencies {
+    compile 'me.oriley.crate:crate-runtime:0.3'
+
+    // Optional, only required if you plan to use the helper SVG parsing and caching methods
+    compile 'com.caverock:androidsvg:1.2.1'
+}
 ```
 
-Crate also includes a Gradle DSL extension to provide some optional settings. Declare it in your project build.gradle as follows:
+Crate also includes a Gradle DSL extension to enable extra logging, should you have any issues:
 ```groovy
 crate {
-    // Default is false, will output more info to gradle log if set to true
+    // Default is false, will output more info to gradle log and Android logcat if set to true
     debugLogging = true
-
-    // Default is true, setting to false will mean all values can be freed up by the VM when memory is required, at
-    // the cost of requiring an instance of Crate to access values. I would suggest setting this to false if you have
-    // a LOT of assets, or you like the convenience of the delegated open methods.
-    staticMode = false
-
-    // By default the package name is read from the application manifest. If that fails
-    // for some reason, or you would like the Crate class to be generated elsewhere,
-    // set the package name here
-    packageName = "my.package.name"
-
-    // If you'd rather the class be name something other than 'Crate', set this property
-    className = "NotACrate"
 }
 ```
 
@@ -161,7 +232,7 @@ class FontRecyclerAdapter extends RecyclerView.Adapter<FontViewHolder> {
     public void onBindViewHolder(FontViewHolder holder, int position) {
         FontAsset fontAsset = mCrate.assets.fonts.LIST.get(position);
         holder.textView.setText(fontAsset.getFontName());
-        holder.textView.setTypeface(fontAsset.getTypeface());
+        holder.textView.setTypeface(mCrate.getTypeface(fontAsset));
     }
 
     @Override

@@ -1,7 +1,9 @@
 Change Log
 ==========
 
-## Version 0.3 WIP
+## Version 0.3
+
+_2016-3-17_
 
 ### Major refactor - API breaking changes
 
@@ -18,11 +20,12 @@ Change Log
  *  Feature: Implement `getSvgDrawable()` and `getSvgBitmap()` helper methods in `Crate` (requires `com.caverock:androidsvg:1.2.1` dependency)
  *  Feature: Implement `PictureDrawable` caching to dramatically speedup SVG retrieval
  *  Improvement: Use content type rather than file extension for categorising assets
+ *  Improvement: Add builder pattern and support for clearing specific asset caches
 
 
 ## Version 0.2
 
-_2016-3-14
+_2016-3-14_
 
  *  Improvement: Add debug logging for testing
  *  Improvement: Use TreeMap to keep LIST fields sorted by field name
