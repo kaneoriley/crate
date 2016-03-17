@@ -17,6 +17,7 @@ Change Log
  *  Feature: Add SvgAsset class for SVG/SVGZ assets
  *  Feature: Implement `getSvgDrawable()` and `getSvgBitmap()` helper methods in `Crate` (requires `com.caverock:androidsvg:1.2.1` dependency)
  *  Feature: Implement `PictureDrawable` caching to dramatically speedup SVG retrieval
+ *  Improvement: Use content type rather than file extension for categorising assets
 
 
 ## Version 0.2

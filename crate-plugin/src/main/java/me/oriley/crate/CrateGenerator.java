@@ -31,6 +31,7 @@ import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.*;
+import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -56,9 +57,9 @@ public final class CrateGenerator {
     private static final String DEBUG = "debug";
     private static final String CLASS = "Class";
 
-    private static final List<String> FONT_EXTENSIONS = Arrays.asList("otf", "ttf");
-    private static final List<String> IMAGE_EXTENSIONS = Arrays.asList("jpg", "jpeg", "gif", "png");
-    private static final List<String> SVG_EXTENSIONS = Arrays.asList("svg", "svgz");
+    private static final List<String> FONT_TYPES = Arrays.asList("application/x-font-otf", "application/x-font-ttf");
+    private static final List<String> IMAGE_TYPES = Arrays.asList("image/jpeg", "image/png", "image/pjpeg", "image/gif", "image/bmp", "image/x-windows-bmp", "image/webp");
+    private static final List<String> SVG_TYPES = Arrays.asList("image/svg+xml", "image/svg+xml-compressed");
 
     private static final Logger log = LoggerFactory.getLogger(CrateGenerator.class.getSimpleName());
 
@@ -227,16 +228,20 @@ public final class CrateGenerator {
                     }
                 }
 
-                String filePath = file.getPath().replace(variantAssetDir + "/", "");
+                String contentType = getContentType(file);
+                if (contentType == null) {
+                    contentType = "application/octet-stream";
+                }
 
-                String fileExtension = getFileExtension(fileName).toLowerCase(US);
+                String filePath = file.getPath().replace(variantAssetDir + "/", "");
                 AssetHolder asset;
-                if (FONT_EXTENSIONS.contains(fileExtension)) {
+
+                if (FONT_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.FONT);
                     String fontName = getFontName(file.getPath());
                     asset = new FontAssetHolder(fieldName, filePath, fileName, fontName != null ? fontName : fileName);
                     builder.addField(createFontAssetField((FontAssetHolder) asset));
-                } else if (IMAGE_EXTENSIONS.contains(fileExtension)) {
+                } else if (IMAGE_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.IMAGE);
                     int width = 0;
                     int height = 0;
@@ -252,7 +257,7 @@ public final class CrateGenerator {
 
                     asset = new ImageAssetHolder(fieldName, filePath, fileName, width, height);
                     builder.addField(createImageAssetField((ImageAssetHolder) asset));
-                } else if (SVG_EXTENSIONS.contains(fileExtension)) {
+                } else if (SVG_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.SVG);
                     asset = new SvgAssetHolder(fieldName, filePath, fileName);
                     builder.addField(createSvgAssetField((SvgAssetHolder) asset));
@@ -306,6 +311,15 @@ public final class CrateGenerator {
                 return ImageAsset.class;
             case SVG:
                 return SvgAsset.class;
+        }
+    }
+
+    @Nullable
+    private String getContentType(@NonNull File file) {
+        try {
+            return Files.probeContentType(file.toPath());
+        } catch (IOException e) {
+            return null;
         }
     }
 
@@ -415,16 +429,6 @@ public final class CrateGenerator {
     }
 
     @NonNull
-    private static String getFileExtension(@NonNull String fileName) {
-        String extension = "";
-        int i = fileName.lastIndexOf('.');
-        if (i > 0) {
-            extension = fileName.substring(i + 1);
-        }
-        return extension;
-    }
-
-    @NonNull
     private static String sanitiseFieldName(@NonNull String fileName) {
         // JavaPoet doesn't like the dollar signs so we remove them too
         char[] charArray = fileName.toCharArray();
@@ -447,7 +451,9 @@ public final class CrateGenerator {
         @NonNull
         final String mFieldName;
 
-        private AssetHolder(@NonNull String fieldName, @NonNull String path, @NonNull String name) {
+        private AssetHolder(@NonNull String fieldName,
+                            @NonNull String path,
+                            @NonNull String name) {
             super(path, name);
             mFieldName = fieldName;
         }
@@ -502,8 +508,8 @@ public final class CrateGenerator {
     private static final class SvgAssetHolder extends AssetHolder {
 
         private SvgAssetHolder(@NonNull String fieldName,
-                                 @NonNull String path,
-                                 @NonNull String name) {
+                               @NonNull String path,
+                               @NonNull String name) {
             super(fieldName, path, name);
         }
 
