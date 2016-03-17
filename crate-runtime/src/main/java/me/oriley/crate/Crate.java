@@ -15,6 +15,7 @@ import java.lang.RuntimeException;
 import java.lang.String;
 import java.lang.SuppressWarnings;
 import java.util.HashMap;
+import java.util.List;
 
 @SuppressWarnings("unused")
 public final class Crate {
@@ -44,9 +45,22 @@ public final class Crate {
     @NonNull
     public final CrateDictionary.AssetsClass assets;
 
-    public Crate(@NonNull Context context) {
+    private final boolean mTypefaceCacheEnabled;
+
+    private final boolean mBitmapCacheEnabled;
+
+    private final boolean mSvgCacheEnabled;
+
+    private Crate(@NonNull Context context,
+                  boolean typefaceCacheEnabled,
+                  boolean bitmapCacheEnabled,
+                  boolean svgCacheEnabled) {
         mAssetManager = context.getApplicationContext().getAssets();
         mDictionary = new CrateDictionary();
+
+        mTypefaceCacheEnabled = typefaceCacheEnabled;
+        mBitmapCacheEnabled = bitmapCacheEnabled;
+        mSvgCacheEnabled = svgCacheEnabled;
 
         // Ugly, but helps keep with desired code style
         assets = mDictionary.assets;
@@ -66,7 +80,7 @@ public final class Crate {
     @Nullable
     public Bitmap getBitmap(@NonNull ImageAsset imageAsset) {
         String key = imageAsset.mPath;
-        if (mBitmapCache.containsKey(key)) {
+        if (mBitmapCacheEnabled && mBitmapCache.containsKey(key)) {
             Bitmap bitmap = mBitmapCache.get(key);
             if (bitmap != null && !bitmap.isRecycled()) {
                 if (DEBUG) Log.d(TAG, "Using cached bitmap for key: " + key);
@@ -91,16 +105,22 @@ public final class Crate {
         } finally {
             if (bitmap != null) {
                 if (DEBUG) Log.d(TAG, "Bitmap loaded for key: " + key);
-                mBitmapCache.put(key, bitmap);
+                cacheBitmap(key, bitmap);
             }
         }
         return bitmap;
     }
 
+    private void cacheBitmap(@NonNull String key, @NonNull Bitmap bitmap) {
+        if (mBitmapCacheEnabled) {
+            mBitmapCache.put(key, bitmap);
+        }
+    }
+
     @Nullable
     public Typeface getTypeface(@NonNull FontAsset fontAsset) {
         String key = fontAsset.mPath;
-        if (mTypefaceCache.containsKey(key)) {
+        if (mTypefaceCacheEnabled && mTypefaceCache.containsKey(key)) {
             if (DEBUG) Log.d(TAG, "Using cached typeface for key: " + key);
             return mTypefaceCache.get(key);
         }
@@ -113,10 +133,16 @@ public final class Crate {
         } finally {
             if (typeface != null) {
                 if (DEBUG) Log.d(TAG, "Typeface loaded for key: " + key);
-                mTypefaceCache.put(key, typeface);
+                cacheTypeface(key, typeface);
             }
         }
         return typeface;
+    }
+
+    private void cacheTypeface(@NonNull String key, @NonNull Typeface typeface) {
+        if (mTypefaceCacheEnabled) {
+            mTypefaceCache.put(key, typeface);
+        }
     }
 
     @Nullable
@@ -146,7 +172,7 @@ public final class Crate {
     @Nullable
     public PictureDrawable getSvgDrawable(@NonNull SvgAsset svgAsset) {
         String key = svgAsset.getPath();
-        if (mSvgCache.containsKey(key)) {
+        if (mSvgCacheEnabled && mSvgCache.containsKey(key)) {
             if (DEBUG) Log.d(TAG, "Using cached PictureDrawable for key: " + key);
             return mSvgCache.get(key);
         }
@@ -166,16 +192,32 @@ public final class Crate {
         } finally {
             if (drawable != null) {
                 if (DEBUG) Log.d(TAG, "SVG loaded for key: " + key);
-                mSvgCache.put(key, drawable);
+                cachePictureDrawable(key, drawable);
             }
         }
         return drawable;
     }
 
+    private void cachePictureDrawable(@NonNull String key, @NonNull PictureDrawable drawable) {
+        if (mSvgCacheEnabled) {
+            mSvgCache.put(key, drawable);
+        }
+    }
+
     public void clear() {
-        clearBitmapCache();
         clearTypefaceCache();
+        clearBitmapCache();
         clearSvgCache();
+    }
+
+    public void clearTypefaceCache() {
+        mTypefaceCache.clear();
+    }
+
+    public void clearTypefaceCache(@NonNull FontAsset... assets) {
+        for (FontAsset asset : assets) {
+            mTypefaceCache.remove(asset.getPath());
+        }
     }
 
     public void clearBitmapCache() {
@@ -185,12 +227,58 @@ public final class Crate {
         mBitmapCache.clear();
     }
 
+    public void clearBitmapCache(@NonNull ImageAsset... assets) {
+        for (ImageAsset asset : assets) {
+            mBitmapCache.remove(asset.getPath());
+        }
+    }
+
     public void clearSvgCache() {
         mSvgCache.clear();
     }
 
-    public void clearTypefaceCache() {
-        mTypefaceCache.clear();
+    public void clearSvgCache(@NonNull SvgAsset... assets) {
+        for (SvgAsset asset : assets) {
+            mSvgCache.remove(asset.getPath());
+        }
     }
 
+    public static final class Builder {
+
+        @NonNull
+        private Context mContext;
+
+        private boolean mTypefaceCacheEnabled;
+
+        private boolean mBitmapCacheEnabled;
+
+        private boolean mSvgCacheEnabled;
+
+        public Builder(@NonNull Context context) {
+            mContext = context.getApplicationContext();
+        }
+
+        @NonNull
+        public Builder setTypefaceCacheEnabled(boolean enabled) {
+            mTypefaceCacheEnabled = enabled;
+            return this;
+        }
+
+        @NonNull
+        public Builder setBitmapCacheEnabled(boolean enabled) {
+            mBitmapCacheEnabled = enabled;
+            return this;
+        }
+
+        @NonNull
+        public Builder setSvgCacheEnabled(boolean enabled) {
+            mSvgCacheEnabled = enabled;
+            return this;
+        }
+
+        @NonNull
+        public Crate build() {
+            return new Crate(mContext, mTypefaceCacheEnabled, mBitmapCacheEnabled, mSvgCacheEnabled);
+        }
+    }
 }
