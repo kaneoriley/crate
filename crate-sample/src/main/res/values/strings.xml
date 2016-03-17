@@ -4,5 +4,8 @@
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
 
-    <string name="action_settings">Settings</string>
+    <string name="info_dialog">SVG samples courtesy of https://github.com/Ranks/emojione\n\n
+    Wallpapers courtesy of https://github.com/CyanogenMod/android_packages_apps_CMWallpapers and MIUI\n\n
+    Fonts courtesy of the Android Open Source Project and MIUI</string>
+
 </resources>

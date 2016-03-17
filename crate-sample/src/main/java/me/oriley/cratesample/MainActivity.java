@@ -1,12 +1,16 @@
 package me.oriley.cratesample;
 
+import android.content.DialogInterface;
 import android.os.Bundle;
+import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
 import android.support.design.widget.NavigationView;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
+import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
@@ -14,48 +18,52 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
-import android.widget.Toast;
+import me.oriley.crate.Crate;
+import me.oriley.crate.FontAsset;
+import me.oriley.crate.ImageAsset;
+import me.oriley.crate.SvgAsset;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
     private DrawerLayout mDrawerLayout;
 
-    private NavigationView mNavigationView;
-
     private RecyclerView mRecyclerView;
-
-    private FontRecyclerAdapter mFontAdapter;
 
     private Crate mCrate;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mCrate = new Crate(this);
+        mCrate = new Crate.Builder(this)
+                .setTypefaceCacheEnabled(true)
+                .setBitmapCacheEnabled(true)
+                .setSvgCacheEnabled(true)
+                .build();
 
         setContentView(R.layout.activity_main);
 
         mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
         mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
+        assert mRecyclerView != null;
+        mRecyclerView.setHasFixedSize(true);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
                 this, mDrawerLayout, toolbar, R.string.navigation_drawer_open, R.string.navigation_drawer_close);
+        //noinspection deprecation
         mDrawerLayout.setDrawerListener(toggle);
         toggle.syncState();
 
-        mNavigationView = (NavigationView) findViewById(R.id.nav_view);
-        mNavigationView.setNavigationItemSelectedListener(this);
-
-        mFontAdapter = new FontRecyclerAdapter(mCrate);
-
-        mRecyclerView.setHasFixedSize(true);
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mRecyclerView.setAdapter(mFontAdapter);
-        mRecyclerView.scrollToPosition(Integer.MAX_VALUE / 2);
+        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
+        if (navigationView != null) {
+            navigationView.setNavigationItemSelectedListener(this);
+            navigationView.setCheckedItem(R.id.nav_fonts);
+        }
+        onNavigationItemSelected(R.id.nav_fonts);
     }
 
     @Override
@@ -71,32 +79,50 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onDestroy() {
         super.onDestroy();
         mRecyclerView.setAdapter(null);
-        mFontAdapter = null;
+        mCrate.clear();
         mCrate = null;
     }
 
-    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public boolean onNavigationItemSelected(MenuItem item) {
-        // Handle navigation view item clicks here.
-        int id = item.getItemId();
+        return onNavigationItemSelected(item.getItemId());
+    }
 
+    private boolean onNavigationItemSelected(@IdRes int id) {
+        boolean scrollAdapter = false;
         if (id == R.id.nav_fonts) {
+            scrollAdapter = true;
             mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-            mRecyclerView.setAdapter(mFontAdapter);
+            mRecyclerView.setAdapter(new FontRecyclerAdapter(mCrate));
         } else if (id == R.id.nav_images) {
-            showToast("Coming soon");
+            scrollAdapter = true;
+            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
+            mRecyclerView.setAdapter(new BitmapRecyclerAdapter(mCrate));
         } else if (id == R.id.nav_svgs) {
-            showToast("Coming soon");
+            scrollAdapter = true;
+            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
+            mRecyclerView.setAdapter(new SvgRecyclerAdapter(mCrate));
+        } else if (id == R.id.nav_info) {
+            showInfoDialog();
         }
 
-        mRecyclerView.scrollToPosition(Integer.MAX_VALUE / 2);
+        if (scrollAdapter) {
+            mRecyclerView.scrollToPosition(Integer.MAX_VALUE / 2);
+        }
         mDrawerLayout.closeDrawer(GravityCompat.START);
         return true;
     }
 
-    private void showToast(@NonNull String message) {
-        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
+    private void showInfoDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle(String.format("%s %s", getString(R.string.app_name), BuildConfig.VERSION_NAME))
+                .setMessage(R.string.info_dialog)
+                .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                }).show();
     }
 
     private static final class FontViewHolder extends RecyclerView.ViewHolder {
@@ -131,9 +157,93 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         @Override
         public void onBindViewHolder(@NonNull FontViewHolder holder, int position) {
-            Crate.FontAsset fontAsset = mCrate.assets.fonts.LIST.get(position % mActualSize);
+            FontAsset fontAsset = mCrate.assets.fonts.LIST.get(position % mActualSize);
             holder.textView.setText(fontAsset.getFontName());
-            holder.textView.setTypeface(fontAsset.getTypeface());
+            holder.textView.setTypeface(mCrate.getTypeface(fontAsset));
+        }
+
+        @Override
+        public int getItemCount() {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    private static final class BitmapViewHolder extends RecyclerView.ViewHolder {
+
+        @NonNull
+        ImageView imageView;
+
+        BitmapViewHolder(@NonNull View view) {
+            super(view);
+            imageView = (ImageView) view.findViewById(R.id.image_view);
+        }
+    }
+
+    private static final class BitmapRecyclerAdapter extends RecyclerView.Adapter<BitmapViewHolder> {
+
+        @NonNull
+        private final Crate mCrate;
+
+        private final int mActualSize;
+
+        BitmapRecyclerAdapter(@NonNull Crate crate) {
+            mCrate = crate;
+            mActualSize = mCrate.assets.images.LIST.size();
+        }
+
+        @Override
+        public BitmapViewHolder onCreateViewHolder(ViewGroup viewGroup, int position) {
+            View view = LayoutInflater.from(viewGroup.getContext())
+                    .inflate(R.layout.bitmap_view_item, viewGroup, false);
+            return new BitmapViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull BitmapViewHolder holder, int position) {
+            ImageAsset imageAsset = mCrate.assets.images.LIST.get(position % mActualSize);
+            holder.imageView.setImageBitmap(mCrate.getBitmap(imageAsset));
+        }
+
+        @Override
+        public int getItemCount() {
+            return Integer.MAX_VALUE;
+        }
+    }
+
+    private static final class SvgViewHolder extends RecyclerView.ViewHolder {
+
+        @NonNull
+        SvgImageView imageView;
+
+        SvgViewHolder(@NonNull View view) {
+            super(view);
+            imageView = (SvgImageView) view.findViewById(R.id.image_view);
+        }
+    }
+
+    private static final class SvgRecyclerAdapter extends RecyclerView.Adapter<SvgViewHolder> {
+
+        @NonNull
+        private final Crate mCrate;
+
+        private final int mActualSize;
+
+        SvgRecyclerAdapter(@NonNull Crate crate) {
+            mCrate = crate;
+            mActualSize = mCrate.assets.svgs.LIST.size();
+        }
+
+        @Override
+        public SvgViewHolder onCreateViewHolder(ViewGroup viewGroup, int position) {
+            View view = LayoutInflater.from(viewGroup.getContext())
+                    .inflate(R.layout.svg_view_item, viewGroup, false);
+            return new SvgViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull SvgViewHolder holder, int position) {
+            SvgAsset svgAsset = mCrate.assets.svgs.LIST.get(position % mActualSize);
+            holder.imageView.loadSvgBitmap(mCrate, svgAsset);
         }
 
         @Override

@@ -4,16 +4,25 @@
     <group android:checkableBehavior="single">
         <item
             android:id="@+id/nav_fonts"
-            android:icon="@drawable/ic_menu_camera"
+            android:icon="@drawable/ic_font"
             android:title="Fonts" />
         <item
             android:id="@+id/nav_images"
-            android:icon="@drawable/ic_menu_gallery"
+            android:icon="@drawable/ic_photo"
             android:title="Images" />
         <item
             android:id="@+id/nav_svgs"
-            android:icon="@drawable/ic_menu_slideshow"
+            android:icon="@drawable/ic_vector"
             android:title="SVGs" />
     </group>
+
+    <item android:title="Other">
+        <menu>
+            <item
+                android:id="@+id/nav_info"
+                android:icon="@drawable/ic_info"
+                android:title="Info" />
+        </menu>
+    </item>
 
 </menu>
