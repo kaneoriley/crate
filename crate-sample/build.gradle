@@ -2,10 +2,11 @@ buildscript {
     repositories {
         jcenter()
         maven { url "https://jitpack.io" }
+        mavenLocal()
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:1.2.3'
-        classpath 'me.oriley.crate:crate-plugin:0.3'
+        classpath 'me.oriley.crate:crate-plugin:0.4-SNAPSHOT'
     }
 }
 
@@ -15,6 +16,7 @@ apply plugin: 'me.oriley.crate-plugin'
 repositories {
     jcenter()
     maven { url "https://jitpack.io" }
+    mavenLocal()
 }
 
 android {
@@ -26,7 +28,7 @@ android {
         minSdkVersion 16
         targetSdkVersion 22
         versionCode 2
-        versionName "0.3"
+        versionName "0.4-SNAPSHOT"
     }
     buildTypes {
         release {
@@ -52,6 +54,6 @@ dependencies {
     compile 'com.fabiendevos:nanotasks:1.1.0'
 
     // Crate - Runtime classes
-    compile 'me.oriley.crate:crate-runtime:0.3'
+    compile 'me.oriley.crate:crate-runtime:0.4-SNAPSHOT'
     compile 'com.caverock:androidsvg:1.2.1'
 }

@@ -1,2 +1,5 @@
-include ':crate-plugin', ':crate-sample', ':crate-common', ':crate-runtime', ':crate-dummy'
+include ':crate-plugin', ':crate-common', ':crate-runtime', ':crate-dummy'
 
+if (!"true".equals(System.getenv("TRAVIS"))) {
+    include ':crate-sample'
+}
