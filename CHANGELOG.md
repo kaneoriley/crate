@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+## Version 0.4 WIP
+
+ *  Feature: Add automatic Gzip wrapping and `isGzipped()` method for all assets
+
 ## Version 0.3
 
 _2016-3-17_

@@ -3,13 +3,17 @@ package me.oriley.crate;
 @SuppressWarnings("unused")
 public class Asset {
 
+    final boolean mGzipped;
+
     final String mPath;
 
-    final String mName;
-
-    Asset(String path, String name) {
+    Asset(String path, boolean gzipped) {
         mPath = path;
-        mName = name;
+        mGzipped = gzipped;
+    }
+
+    public boolean isGzipped() {
+        return mGzipped;
     }
 
     public String getPath() {
@@ -17,6 +21,7 @@ public class Asset {
     }
 
     public String getName() {
-        return mName;
+        String[] path = mPath.split("/");
+        return path[path.length - 1];
     }
 }

@@ -7,8 +7,8 @@ public class ImageAsset extends Asset {
 
     final int mHeight;
 
-    ImageAsset(String path, String name, int width, int height) {
-        super(path, name);
+    ImageAsset(String path, boolean gzipped, int width, int height) {
+        super(path, gzipped);
         mWidth = width;
         mHeight = height;
     }

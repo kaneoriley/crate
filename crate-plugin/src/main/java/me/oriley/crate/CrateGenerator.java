@@ -35,11 +35,12 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
 
 import static java.util.Locale.US;
 import static javax.lang.model.element.Modifier.*;
-import static me.oriley.crate.utils.JavaPoetUtils.*;
 import static me.oriley.crate.utils.JavaPoetUtils.Nullability.NONNULL;
+import static me.oriley.crate.utils.JavaPoetUtils.*;
 
 public final class CrateGenerator {
 
@@ -233,13 +234,14 @@ public final class CrateGenerator {
                     contentType = "application/octet-stream";
                 }
 
+                boolean gzipped = isGzipped(file);
                 String filePath = file.getPath().replace(variantAssetDir + "/", "");
                 AssetHolder asset;
 
                 if (FONT_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.FONT);
                     String fontName = getFontName(file.getPath());
-                    asset = new FontAssetHolder(fieldName, filePath, fileName, fontName != null ? fontName : fileName);
+                    asset = new FontAssetHolder(fieldName, filePath, gzipped, fontName != null ? fontName : fileName);
                     builder.addField(createFontAssetField((FontAssetHolder) asset));
                 } else if (IMAGE_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.IMAGE);
@@ -255,15 +257,15 @@ public final class CrateGenerator {
                         logError("Error parsing image: " + file.getPath(), e, false);
                     }
 
-                    asset = new ImageAssetHolder(fieldName, filePath, fileName, width, height);
+                    asset = new ImageAssetHolder(fieldName, filePath, gzipped, width, height);
                     builder.addField(createImageAssetField((ImageAssetHolder) asset));
                 } else if (SVG_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.SVG);
-                    asset = new SvgAssetHolder(fieldName, filePath, fileName);
+                    asset = new SvgAssetHolder(fieldName, filePath, gzipped);
                     builder.addField(createSvgAssetField((SvgAssetHolder) asset));
                 } else {
                     folderClass = FolderClass.ASSET;
-                    asset = new AssetHolder(fieldName, filePath, fileName);
+                    asset = new AssetHolder(fieldName, filePath, gzipped);
                     builder.addField(createAssetField(asset));
                 }
                 assetMap.put(fieldName, asset);
@@ -312,6 +314,32 @@ public final class CrateGenerator {
             case SVG:
                 return SvgAsset.class;
         }
+    }
+
+    private boolean isGzipped(@NonNull File file) {
+        try {
+            InputStream stream = new FileInputStream(file);
+            if (!stream.markSupported()) {
+                // We need a a buffered stream so we can use mark() and reset()
+                stream = new BufferedInputStream(stream);
+            }
+            //noinspection TryFinallyCanBeTryWithResources
+            try {
+                stream.mark(3);
+                int firstTwoBytes = stream.read() + (stream.read() << 8);
+                stream.reset();
+                if (firstTwoBytes == GZIPInputStream.GZIP_MAGIC) {
+                    return true;
+                }
+            } finally {
+                stream.close();
+            }
+        } catch (IOException e) {
+            logError("Failed to read input stream for " + file.getPath(), e, false);
+        }
+
+        // Something bad happened or file is not Gzipped
+        return false;
     }
 
     @Nullable
@@ -453,13 +481,13 @@ public final class CrateGenerator {
 
         private AssetHolder(@NonNull String fieldName,
                             @NonNull String path,
-                            @NonNull String name) {
-            super(path, name);
+                            boolean gzipped) {
+            super(path, gzipped);
             mFieldName = fieldName;
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $S)", Asset.class, mPath, mName);
+            builder.initializer("new $T($S, $L)", Asset.class, mPath, mGzipped);
         }
     }
 
@@ -471,14 +499,14 @@ public final class CrateGenerator {
 
         private FontAssetHolder(@NonNull String fieldName,
                                 @NonNull String path,
-                                @NonNull String name,
+                                boolean gzipped,
                                 @NonNull String fontName) {
-            super(fieldName, path, name);
+            super(fieldName, path, gzipped);
             mFontName = fontName;
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $S, $S)", FontAsset.class, mPath, mName, mFontName);
+            builder.initializer("new $T($S, $L, $S)", FontAsset.class, mPath, mGzipped, mFontName);
         }
     }
 
@@ -491,16 +519,16 @@ public final class CrateGenerator {
 
         private ImageAssetHolder(@NonNull String fieldName,
                                  @NonNull String path,
-                                 @NonNull String name,
+                                 boolean gzipped,
                                  int width,
                                  int height) {
-            super(fieldName, path, name);
+            super(fieldName, path, gzipped);
             mWidth = width;
             mHeight = height;
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $S, $L, $L)", ImageAsset.class, mPath, mName, mWidth, mHeight);
+            builder.initializer("new $T($S, $L, $L, $L)", ImageAsset.class, mPath, mGzipped, mWidth, mHeight);
         }
     }
 
@@ -509,12 +537,12 @@ public final class CrateGenerator {
 
         private SvgAssetHolder(@NonNull String fieldName,
                                @NonNull String path,
-                               @NonNull String name) {
-            super(fieldName, path, name);
+                               boolean gzipped) {
+            super(fieldName, path, gzipped);
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $S)", SvgAsset.class, mPath, mName);
+            builder.initializer("new $T($S, $L)", SvgAsset.class, mPath, mGzipped);
         }
     }
 }

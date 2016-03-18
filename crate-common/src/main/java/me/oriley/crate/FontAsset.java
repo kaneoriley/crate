@@ -5,8 +5,8 @@ public class FontAsset extends Asset {
 
     final String mFontName;
 
-    FontAsset(String path, String name, String fontName) {
-        super(path, name);
+    FontAsset(String path, boolean gzipped, String fontName) {
+        super(path, gzipped);
         mFontName = fontName;
     }
 

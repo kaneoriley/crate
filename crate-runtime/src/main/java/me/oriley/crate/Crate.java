@@ -15,7 +15,7 @@ import java.lang.RuntimeException;
 import java.lang.String;
 import java.lang.SuppressWarnings;
 import java.util.HashMap;
-import java.util.List;
+import java.util.zip.GZIPInputStream;
 
 @SuppressWarnings("unused")
 public final class Crate {
@@ -69,12 +69,16 @@ public final class Crate {
 
     @NonNull
     public InputStream open(@NonNull Asset asset) throws IOException {
-        return mAssetManager.open(asset.mPath);
+        return open(asset, AssetManager.ACCESS_STREAMING);
     }
 
     @NonNull
     public InputStream open(@NonNull Asset asset, int mode) throws IOException {
-        return mAssetManager.open(asset.mPath, mode);
+        InputStream stream = mAssetManager.open(asset.getPath(), mode);
+        if (asset.isGzipped()) {
+            stream = new GZIPInputStream(stream);
+        }
+        return stream;
     }
 
     @Nullable

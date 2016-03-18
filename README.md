@@ -11,8 +11,11 @@ Included is a built-in caching mechanism for `Typeface`s, `Bitmap`s and `Picture
 
 No more string literals or typos, all your assets can be accessed with confidence!
 
-Each `Asset` has two methods, `asset.getPath()` will return the full path as required by an `AssetManager`, and
-`asset.getName()`, which will return the filename only.
+Each `Asset` has the following methods:
+`asset.getPath()`: Will return the full path as required by an `AssetManager`
+`asset.getName()`: Returns just the file name of the asset
+`asset.isGzipped()`: Returns whether the file is Gzip compressed (will be automatically handled by `Crate`)
+
 There are three subtypes of `Asset`, which contain extra information about the asset (calculated at compile time).
 They are:
 
