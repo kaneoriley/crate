@@ -4,6 +4,7 @@ Change Log
 ## Version 0.4 WIP
 
  *  Feature: Add automatic Gzip wrapping and `isGzipped()` method for all assets
+ *  Feature: Add Loader classes for better adapter usage
 
 ## Version 0.3
 

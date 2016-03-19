@@ -26,10 +26,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.Toolbar;
+import android.support.v7.widget.*;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -37,6 +34,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 import me.oriley.crate.*;
+import me.oriley.crate.loader.ImageLoader;
+import me.oriley.crate.loader.SvgLoader;
 
 public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
@@ -110,11 +109,11 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         } else if (id == R.id.nav_images) {
             scrollAdapter = true;
             mRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
-            mRecyclerView.setAdapter(new BitmapRecyclerAdapter(mCrate));
+            mRecyclerView.setAdapter(new CrateBitmapRecyclerAdapter(mCrate));
         } else if (id == R.id.nav_svgs) {
             scrollAdapter = true;
             mRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
-            mRecyclerView.setAdapter(new SvgRecyclerAdapter(mCrate));
+            mRecyclerView.setAdapter(new CrateSvgRecyclerAdapter(mCrate));
         } else if (id == R.id.nav_info) {
             showInfoDialog();
         }
@@ -192,14 +191,31 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
     }
 
-    private static final class BitmapRecyclerAdapter extends RecyclerView.Adapter<BitmapViewHolder> {
+    private static final class CrateBitmapRecyclerAdapter extends AbstractBitmapRecyclerAdapter {
 
         @NonNull
-        private final Crate mCrate;
+        private final ImageLoader mLoader;
 
-        private final int mActualSize;
+        CrateBitmapRecyclerAdapter(@NonNull Crate crate) {
+            super(crate);
+            mLoader = new ImageLoader(crate);
+        }
 
-        BitmapRecyclerAdapter(@NonNull Crate crate) {
+        @Override
+        public void onBindViewHolder(@NonNull BitmapViewHolder holder, int position) {
+            ImageAsset imageAsset = mCrate.assets.images.LIST.get(position % mActualSize);
+            mLoader.loadInto(holder.imageView, imageAsset);
+        }
+    }
+
+    private static abstract class AbstractBitmapRecyclerAdapter extends RecyclerView.Adapter<BitmapViewHolder> {
+
+        @NonNull
+        protected final Crate mCrate;
+
+        protected final int mActualSize;
+
+        AbstractBitmapRecyclerAdapter(@NonNull Crate crate) {
             mCrate = crate;
             mActualSize = mCrate.assets.images.LIST.size();
         }
@@ -212,12 +228,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         }
 
         @Override
-        public void onBindViewHolder(@NonNull BitmapViewHolder holder, int position) {
-            ImageAsset imageAsset = mCrate.assets.images.LIST.get(position % mActualSize);
-            holder.imageView.setImageBitmap(mCrate.getBitmap(imageAsset));
-        }
-
-        @Override
         public int getItemCount() {
             return Integer.MAX_VALUE;
         }
@@ -226,22 +236,39 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     private static final class SvgViewHolder extends RecyclerView.ViewHolder {
 
         @NonNull
-        SvgImageView imageView;
+        ImageView imageView;
 
         SvgViewHolder(@NonNull View view) {
             super(view);
-            imageView = (SvgImageView) view.findViewById(R.id.image_view);
+            imageView = (ImageView) view.findViewById(R.id.image_view);
         }
     }
 
-    private static final class SvgRecyclerAdapter extends RecyclerView.Adapter<SvgViewHolder> {
+    private static final class CrateSvgRecyclerAdapter extends AbstractSvgRecyclerAdapter {
 
         @NonNull
-        private final Crate mCrate;
+        private final SvgLoader mLoader;
 
-        private final int mActualSize;
+        CrateSvgRecyclerAdapter(@NonNull Crate crate) {
+            super(crate);
+            mLoader = new SvgLoader(crate);
+        }
 
-        SvgRecyclerAdapter(@NonNull Crate crate) {
+        @Override
+        public void onBindViewHolder(@NonNull SvgViewHolder holder, int position) {
+            SvgAsset svgAsset = mCrate.assets.svgs.LIST.get(position % mActualSize);
+            mLoader.loadInto(holder.imageView, svgAsset);
+        }
+    }
+
+    private abstract static class AbstractSvgRecyclerAdapter extends RecyclerView.Adapter<SvgViewHolder> {
+
+        @NonNull
+        protected final Crate mCrate;
+
+        protected final int mActualSize;
+
+        AbstractSvgRecyclerAdapter(@NonNull Crate crate) {
             mCrate = crate;
             mActualSize = mCrate.assets.svgs.LIST.size();
         }
@@ -251,12 +278,6 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
             View view = LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.svg_view_item, viewGroup, false);
             return new SvgViewHolder(view);
-        }
-
-        @Override
-        public void onBindViewHolder(@NonNull SvgViewHolder holder, int position) {
-            SvgAsset svgAsset = mCrate.assets.svgs.LIST.get(position % mActualSize);
-            holder.imageView.loadSvgBitmap(mCrate, svgAsset);
         }
 
         @Override

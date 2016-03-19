@@ -12,7 +12,7 @@
         app:cardPreventCornerOverlap="false"
         app:cardUseCompatPadding="true">
 
-    <me.oriley.cratesample.SvgImageView
+    <ImageView
             android:id="@+id/image_view"
             android:layout_width="match_parent"
             android:layout_height="128dp"
