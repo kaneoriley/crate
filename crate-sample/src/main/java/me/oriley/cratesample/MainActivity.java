@@ -49,9 +49,9 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mCrate = new Crate.Builder(this)
-                .setTypefaceCacheEnabled(true)
-                .setBitmapCacheEnabled(true)
-                .setSvgCacheEnabled(true)
+                .bitmapCacheMaxSize(20)
+                .typefaceCacheMaxSize(200)
+                .svgCacheMaxSize(2000)
                 .build();
 
         setContentView(R.layout.activity_main);

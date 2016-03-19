@@ -45,8 +45,9 @@ explanation below).
 
 ## Usage
 
-To construct the `Crate`, you will need to use the `Crate.Builder` class. Included are methods for turning on the
-individual caches. All caches default to off, so make sure to turn on any that you wish to use.
+To construct the `Crate`, you will need to use the `Crate.Builder` class. Included are methods for setting the max size
+of each cache (in number of objects cached). The default is 0, so you must call the builder methods and pass a positive
+value to have any caching take place.
 
 Note: I would not recommend using the `Bitmap` cache unless you know you have a small quantity of medium to low
 resolution images. For better caching performance of large assets, I'd advise looking into `Picasso` or `Glide` and
@@ -56,9 +57,9 @@ Example construction:
 ```java
 // In constructor/application
 mCrate = new Crate.Builder(this)
-                .setTypefaceCacheEnabled(true)
-                .setBitmapCacheEnabled(false)
-                .setSvgCacheEnabled(true)
+                .bitmapCacheMaxSize(20)
+                .typefaceCacheMaxSize(200)
+                .svgCacheMaxSize(2000)
                 .build();
 ```
 

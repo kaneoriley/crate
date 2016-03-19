@@ -30,7 +30,6 @@ import java.io.InputStream;
 import java.lang.RuntimeException;
 import java.lang.String;
 import java.lang.SuppressWarnings;
-import java.util.HashMap;
 import java.util.zip.GZIPInputStream;
 
 @SuppressWarnings("unused")
@@ -44,13 +43,13 @@ public final class Crate {
     private final boolean DEBUG;
 
     @NonNull
-    private final HashMap<String, Typeface> mTypefaceCache = new HashMap<>();
+    private final CrateCache<FontAsset, Typeface> mTypefaceCache;
 
     @NonNull
-    private final HashMap<String, Bitmap> mBitmapCache = new HashMap<>();
+    private final CrateCache<ImageAsset, Bitmap> mBitmapCache;
 
     @NonNull
-    private final HashMap<String, PictureDrawable> mSvgCache = new HashMap<>();
+    private final CrateCache<SvgAsset, PictureDrawable> mSvgCache;
 
     @NonNull
     private final CrateSvg.Parser mSvgParser = CrateSvg.getParser();
@@ -61,22 +60,16 @@ public final class Crate {
     @NonNull
     public final CrateDictionary.AssetsClass assets;
 
-    private final boolean mTypefaceCacheEnabled;
-
-    private final boolean mBitmapCacheEnabled;
-
-    private final boolean mSvgCacheEnabled;
-
     private Crate(@NonNull Context context,
-                  boolean typefaceCacheEnabled,
-                  boolean bitmapCacheEnabled,
-                  boolean svgCacheEnabled) {
+                  int typefaceCacheMaxSize,
+                  int bitmapCacheMaxSize,
+                  int svgCacheMaxSize) {
         mAssetManager = context.getApplicationContext().getAssets();
         mDictionary = new CrateDictionary();
 
-        mTypefaceCacheEnabled = typefaceCacheEnabled;
-        mBitmapCacheEnabled = bitmapCacheEnabled;
-        mSvgCacheEnabled = svgCacheEnabled;
+        mTypefaceCache = new CrateCache<>(typefaceCacheMaxSize, true);
+        mBitmapCache = new CrateCache<>(bitmapCacheMaxSize, true);
+        mSvgCache = new CrateCache<>(svgCacheMaxSize, true);
 
         // Ugly, but helps keep with desired code style
         assets = mDictionary.assets;
@@ -100,14 +93,14 @@ public final class Crate {
     @Nullable
     public Bitmap getBitmap(@NonNull ImageAsset imageAsset) {
         String key = imageAsset.mPath;
-        if (mBitmapCacheEnabled && mBitmapCache.containsKey(key)) {
-            Bitmap bitmap = mBitmapCache.get(key);
+        if (mBitmapCache.containsKey(imageAsset)) {
+            Bitmap bitmap = mBitmapCache.get(imageAsset);
             if (bitmap != null && !bitmap.isRecycled()) {
                 if (DEBUG) Log.d(TAG, "Using cached bitmap for key: " + key);
                 return bitmap;
             } else {
                 if (DEBUG) Log.d(TAG, "Ejecting recycled bitmap for key: " + key);
-                mBitmapCache.remove(key);
+                mBitmapCache.remove(imageAsset);
             }
         }
         Bitmap bitmap = null;
@@ -125,14 +118,14 @@ public final class Crate {
         } finally {
             if (bitmap != null) {
                 if (DEBUG) Log.d(TAG, "Bitmap loaded for key: " + key);
-                cacheBitmap(key, bitmap);
+                cacheBitmap(imageAsset, bitmap);
             }
         }
         return bitmap;
     }
 
-    private void cacheBitmap(@NonNull String key, @NonNull Bitmap bitmap) {
-        if (mBitmapCacheEnabled) {
+    private void cacheBitmap(@NonNull ImageAsset key, @NonNull Bitmap bitmap) {
+        if (mBitmapCache.maxSize() > 0) {
             mBitmapCache.put(key, bitmap);
         }
     }
@@ -140,9 +133,9 @@ public final class Crate {
     @Nullable
     public Typeface getTypeface(@NonNull FontAsset fontAsset) {
         String key = fontAsset.mPath;
-        if (mTypefaceCacheEnabled && mTypefaceCache.containsKey(key)) {
+        if (mTypefaceCache.containsKey(fontAsset)) {
             if (DEBUG) Log.d(TAG, "Using cached typeface for key: " + key);
-            return mTypefaceCache.get(key);
+            return mTypefaceCache.get(fontAsset);
         }
         Typeface typeface = null;
         try {
@@ -153,14 +146,14 @@ public final class Crate {
         } finally {
             if (typeface != null) {
                 if (DEBUG) Log.d(TAG, "Typeface loaded for key: " + key);
-                cacheTypeface(key, typeface);
+                cacheTypeface(fontAsset, typeface);
             }
         }
         return typeface;
     }
 
-    private void cacheTypeface(@NonNull String key, @NonNull Typeface typeface) {
-        if (mTypefaceCacheEnabled) {
+    private void cacheTypeface(@NonNull FontAsset key, @NonNull Typeface typeface) {
+        if (mTypefaceCache.maxSize() > 0) {
             mTypefaceCache.put(key, typeface);
         }
     }
@@ -192,9 +185,9 @@ public final class Crate {
     @Nullable
     public PictureDrawable getSvgDrawable(@NonNull SvgAsset svgAsset) {
         String key = svgAsset.getPath();
-        if (mSvgCacheEnabled && mSvgCache.containsKey(key)) {
+        if (mSvgCache.containsKey(svgAsset)) {
             if (DEBUG) Log.d(TAG, "Using cached PictureDrawable for key: " + key);
-            return mSvgCache.get(key);
+            return mSvgCache.get(svgAsset);
         }
 
         PictureDrawable drawable = null;
@@ -212,14 +205,14 @@ public final class Crate {
         } finally {
             if (drawable != null) {
                 if (DEBUG) Log.d(TAG, "SVG loaded for key: " + key);
-                cachePictureDrawable(key, drawable);
+                cachePictureDrawable(svgAsset, drawable);
             }
         }
         return drawable;
     }
 
-    private void cachePictureDrawable(@NonNull String key, @NonNull PictureDrawable drawable) {
-        if (mSvgCacheEnabled) {
+    private void cachePictureDrawable(@NonNull SvgAsset key, @NonNull PictureDrawable drawable) {
+        if (mSvgCache.maxSize() > 0) {
             mSvgCache.put(key, drawable);
         }
     }
@@ -236,7 +229,7 @@ public final class Crate {
 
     public void clearTypefaceCache(@NonNull FontAsset... assets) {
         for (FontAsset asset : assets) {
-            mTypefaceCache.remove(asset.getPath());
+            mTypefaceCache.remove(asset);
         }
     }
 
@@ -249,7 +242,7 @@ public final class Crate {
 
     public void clearBitmapCache(@NonNull ImageAsset... assets) {
         for (ImageAsset asset : assets) {
-            mBitmapCache.remove(asset.getPath());
+            mBitmapCache.remove(asset);
         }
     }
 
@@ -259,7 +252,7 @@ public final class Crate {
 
     public void clearSvgCache(@NonNull SvgAsset... assets) {
         for (SvgAsset asset : assets) {
-            mSvgCache.remove(asset.getPath());
+            mSvgCache.remove(asset);
         }
     }
 
@@ -268,37 +261,37 @@ public final class Crate {
         @NonNull
         private Context mContext;
 
-        private boolean mTypefaceCacheEnabled;
+        private int mTypefaceCacheMaxSize;
 
-        private boolean mBitmapCacheEnabled;
+        private int mBitmapCacheMaxSize;
 
-        private boolean mSvgCacheEnabled;
+        private int mSvgCacheMaxSize;
 
         public Builder(@NonNull Context context) {
             mContext = context.getApplicationContext();
         }
 
         @NonNull
-        public Builder setTypefaceCacheEnabled(boolean enabled) {
-            mTypefaceCacheEnabled = enabled;
+        public Builder typefaceCacheMaxSize(int maxSize) {
+            mTypefaceCacheMaxSize = maxSize;
             return this;
         }
 
         @NonNull
-        public Builder setBitmapCacheEnabled(boolean enabled) {
-            mBitmapCacheEnabled = enabled;
+        public Builder bitmapCacheMaxSize(int maxSize) {
+            mBitmapCacheMaxSize = maxSize;
             return this;
         }
 
         @NonNull
-        public Builder setSvgCacheEnabled(boolean enabled) {
-            mSvgCacheEnabled = enabled;
+        public Builder svgCacheMaxSize(int maxSize) {
+            mSvgCacheMaxSize = maxSize;
             return this;
         }
 
         @NonNull
         public Crate build() {
-            return new Crate(mContext, mTypefaceCacheEnabled, mBitmapCacheEnabled, mSvgCacheEnabled);
+            return new Crate(mContext, mTypefaceCacheMaxSize, mBitmapCacheMaxSize, mSvgCacheMaxSize);
         }
     }
 }
