@@ -4,7 +4,8 @@ Change Log
 ## Version 0.4 WIP
 
  *  Feature: Add automatic Gzip wrapping and `isGzipped()` method for all assets
- *  Feature: Add Loader classes for better adapter usage
+ *  Improvement: Add Loader classes for better adapter usage
+ *  Feature: Add `asUri()` method to assets to get path as a Uri String
 
 ## Version 0.3
 

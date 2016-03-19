@@ -12,9 +12,10 @@ Included is a built-in caching mechanism for `Typeface`s, `Bitmap`s and `Picture
 No more string literals or typos, all your assets can be accessed with confidence!
 
 Each `Asset` has the following methods:
-`asset.getPath()`: Will return the full path as required by an `AssetManager`
-`asset.getName()`: Returns just the file name of the asset
-`asset.isGzipped()`: Returns whether the file is Gzip compressed (will be automatically handled by `Crate`)
+`getPath()`: Will return the full path as required by an `AssetManager`
+`getName()`: Returns just the file name of the asset
+`isGzipped()`: Returns whether the file is Gzip compressed (will be automatically handled by `Crate`)
+`asUri()`: Returns the file path formatted as a Uri string for consumption by external libraries
 
 There are three subtypes of `Asset`, which contain extra information about the asset (calculated at compile time).
 They are:
@@ -23,21 +24,23 @@ They are:
 
 Content Types: "application/x-font-otf", "application/x-font-ttf"
 
-Has an extra `fontAsset.getFontName()` method which returns the human readable name embedded in the font.
+Methods:
+`getFontName()`: Returns the human readable name embedded in the font.
 
 * ImageAsset
 
 Content Types: "image/jpeg", "image/png", "image/pjpeg", "image/gif", "image/bmp", "image/x-windows-bmp", "image/webp"
 
-Has two extra methods, `imageAsset.getWidth()` and `imageAsset.getHeight()`, which return the calculated width/height
-of the image.
+Methods:
+`getWidth()`: Returns the width of the image, as calculated at compile time.
+`getHeight()`: Returns the height of the image, as calculated at compile time.
 
 * SvgAsset
 
 Content Types: "image/svg+xml", "image/svg+xml-compressed"
 
-Purely for identification at the moment. Requires adding the `androidsvg` library as a depenency in your module (refer
-to Gradle setup explanation below).
+No extra methods. Requires adding the `androidsvg` library as a depenency in your module (refer to Gradle setup
+explanation below).
 * TODO: Read in some helpful SVG properties at compile time.
 
 ## Usage

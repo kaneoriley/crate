@@ -19,6 +19,8 @@ package me.oriley.crate;
 @SuppressWarnings("unused")
 public class Asset {
 
+    private static final String ASSET_URI_FORMAT = "file:///android_asset/%s";
+
     final boolean mGzipped;
 
     final String mPath;
@@ -39,5 +41,9 @@ public class Asset {
     public String getName() {
         String[] path = mPath.split("/");
         return path[path.length - 1];
+    }
+
+    public String asUri() {
+        return String.format(ASSET_URI_FORMAT, mPath);
     }
 }
