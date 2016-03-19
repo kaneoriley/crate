@@ -49,9 +49,11 @@ crate {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     compile 'com.android.support:design:23.2.1'
+    compile 'com.android.support:cardview-v7:23.2.1'
 
-    // Simple async tasks
-    compile 'com.fabiendevos:nanotasks:1.1.0'
+    // Lombok
+    provided 'org.projectlombok:lombok:1.16.8'
+    compile 'javax.annotation:javax.annotation-api:1.2'
 
     // Crate - Runtime classes
     compile 'me.oriley.crate:crate-runtime:0.4-SNAPSHOT'

@@ -6,4 +6,8 @@
     <dimen name="activity_horizontal_margin">16dp</dimen>
     <dimen name="activity_vertical_margin">16dp</dimen>
     <dimen name="fab_margin">16dp</dimen>
+
+    <dimen name="image_card_corner_radius">16dp</dimen>
+    <dimen name="text_card_corner_radius">4dp</dimen>
+
 </resources>
