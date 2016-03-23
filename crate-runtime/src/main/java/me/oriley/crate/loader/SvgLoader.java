@@ -9,7 +9,7 @@ import me.oriley.crate.Crate;
 import me.oriley.crate.SvgAsset;
 
 @SuppressWarnings("unused")
-public final class SvgLoader extends ViewLoader<ImageView, SvgAsset, Bitmap> {
+public final class SvgLoader extends AssetLoader<ImageView, SvgAsset, Bitmap> {
 
     private static final long ANIM_DURATION_MILLIS = 250;
 
@@ -20,7 +20,7 @@ public final class SvgLoader extends ViewLoader<ImageView, SvgAsset, Bitmap> {
 
 
     @Override
-    protected void initialiseView(@NonNull ImageView view) {
+    protected void initialiseTarget(@NonNull ImageView view, @NonNull SvgAsset asset) {
         view.setImageBitmap(null);
         view.setAlpha(0f);
         view.setScaleX(0.3f);
@@ -29,13 +29,14 @@ public final class SvgLoader extends ViewLoader<ImageView, SvgAsset, Bitmap> {
 
     @Nullable
     @Override
-    protected Bitmap load(SvgAsset asset) {
-        return mCrate.getSvgBitmap(asset);
+    protected Result<Bitmap> load(@NonNull SvgAsset asset) {
+        boolean cached = mCrate.isSvgDrawableCached(asset);
+        return new Result<>(mCrate.getSvgBitmap(asset), asset, cached);
     }
 
     @Override
-    protected void apply(@NonNull Bitmap payload, @NonNull ImageView view) {
-        view.setImageBitmap(payload);
+    protected void apply(@NonNull Result<Bitmap> result, @NonNull ImageView view) {
+        view.setImageBitmap(result.payload);
         view.animate().alpha(1f).scaleX(1f).scaleY(1f)
                 .setInterpolator(new OvershootInterpolator())
                 .setDuration(ANIM_DURATION_MILLIS);

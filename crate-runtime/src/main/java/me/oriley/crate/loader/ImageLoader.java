@@ -9,7 +9,7 @@ import me.oriley.crate.Crate;
 import me.oriley.crate.ImageAsset;
 
 @SuppressWarnings("unused")
-public class ImageLoader extends ViewLoader<ImageView, ImageAsset, Bitmap> {
+public class ImageLoader extends AssetLoader<ImageView, ImageAsset, Bitmap> {
 
     private static final long ANIM_DURATION_MILLIS = 700;
 
@@ -20,7 +20,7 @@ public class ImageLoader extends ViewLoader<ImageView, ImageAsset, Bitmap> {
 
 
     @Override
-    protected void initialiseView(@NonNull ImageView view) {
+    protected void initialiseTarget(@NonNull ImageView view, @NonNull ImageAsset asset) {
         view.setImageBitmap(null);
         view.setScaleX(8f);
         view.setScaleY(8f);
@@ -29,13 +29,14 @@ public class ImageLoader extends ViewLoader<ImageView, ImageAsset, Bitmap> {
 
     @Nullable
     @Override
-    protected Bitmap load(ImageAsset asset) {
-        return mCrate.getBitmap(asset);
+    protected Result<Bitmap> load(@NonNull ImageAsset asset) {
+        boolean cached = mCrate.isBitmapCached(asset);
+        return new Result<>(mCrate.getBitmap(asset), asset, cached);
     }
 
     @Override
-    protected void apply(@NonNull Bitmap payload, @NonNull ImageView view) {
-        view.setImageBitmap(payload);
+    protected void apply(@NonNull Result<Bitmap> result, @NonNull ImageView view) {
+        view.setImageBitmap(result.payload);
         view.animate().setStartDelay(0).scaleX(1f).scaleY(1f).rotation(0f)
                 .setInterpolator(new DecelerateInterpolator())
                 .setDuration(ANIM_DURATION_MILLIS);

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <declare-styleable name="RoundedImageView">
         <attr name="borderWidth"/>
         <attr name="borderColor" format="color" />
@@ -31,4 +32,9 @@
         <attr name="android:bottomRightRadius" />
         <attr name="android:scaleType" />
     </declare-styleable>
+
+    <declare-styleable name="TagView">
+        <attr name="tagSize" format="dimension" />
+    </declare-styleable>
+
 </resources>

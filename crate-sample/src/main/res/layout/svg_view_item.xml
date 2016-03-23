@@ -1,23 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.v7.widget.CardView
+<me.oriley.cratesample.widget.CrateSvgView
         xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:tools="http://schemas.android.com/tools"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        app:contentPadding="8dp"
+        android:layout_height="128dp"
         app:cardBackgroundColor="@color/tileColor"
         app:cardElevation="4dp"
         app:cardCornerRadius="@dimen/image_card_corner_radius"
         app:cardPreventCornerOverlap="false"
-        app:cardUseCompatPadding="true">
-
-    <ImageView
-            android:id="@+id/image_view"
-            android:layout_width="match_parent"
-            android:layout_height="128dp"
-            android:gravity="center"
-            android:scaleType="fitCenter"
-            tools:ignore="ContentDescription"/>
-
-</android.support.v7.widget.CardView>
+        app:cardUseCompatPadding="true"/>

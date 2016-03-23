@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+       xmlns:tools="http://schemas.android.com/tools"
+       xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <me.oriley.cratesample.widget.RoundedImageView
+            android:id="@+id/image_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:scaleType="centerCrop"
+            android:radius="@dimen/image_card_corner_radius"
+            tools:ignore="ContentDescription"/>
+
+    <me.oriley.cratesample.widget.TagView
+            android:id="@+id/tag_view"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:tagSize="@dimen/bitmap_tag_size"/>
+
+</merge>

@@ -124,6 +124,10 @@ public final class Crate {
         return bitmap;
     }
 
+    public boolean isBitmapCached(@NonNull ImageAsset key) {
+        return mBitmapCache.containsKey(key);
+    }
+
     private void cacheBitmap(@NonNull ImageAsset key, @NonNull Bitmap bitmap) {
         if (mBitmapCache.maxSize() > 0) {
             mBitmapCache.put(key, bitmap);
@@ -150,6 +154,10 @@ public final class Crate {
             }
         }
         return typeface;
+    }
+
+    public boolean isTypefaceCached(@NonNull FontAsset key) {
+        return mTypefaceCache.containsKey(key);
     }
 
     private void cacheTypeface(@NonNull FontAsset key, @NonNull Typeface typeface) {
@@ -209,6 +217,10 @@ public final class Crate {
             }
         }
         return drawable;
+    }
+
+    public boolean isSvgDrawableCached(@NonNull SvgAsset key) {
+        return mSvgCache.containsKey(key);
     }
 
     private void cachePictureDrawable(@NonNull SvgAsset key, @NonNull PictureDrawable drawable) {

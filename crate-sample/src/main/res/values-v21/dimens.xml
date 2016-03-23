@@ -1,0 +1,6 @@
+<resources>
+
+    <dimen name="image_card_corner_radius">16dp</dimen>
+    <dimen name="text_card_corner_radius">4dp</dimen>
+
+</resources>
