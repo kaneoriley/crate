@@ -17,7 +17,7 @@ Each `Asset` has the following methods:
 `isGzipped()`: Returns whether the file is Gzip compressed (will be automatically handled by `Crate`)
 `asUri()`: Returns the file path formatted as a Uri string for consumption by external libraries
 
-There are three subtypes of `Asset`, which contain extra information about the asset (calculated at compile time).
+There are four subtypes of `Asset`, which contain extra information about the asset (calculated at compile time).
 They are:
 
 * FontAsset
@@ -42,6 +42,12 @@ Content Types: "image/svg+xml", "image/svg+xml-compressed"
 No extra methods. Requires adding the `androidsvg` library as a depenency in your module (refer to Gradle setup
 explanation below).
 * TODO: Read in some helpful SVG properties at compile time.
+
+* VideoAsset
+
+Content Types: "video/3gpp", "video/mp4", "video/webm"
+
+No extra methods.
 
 ## Usage
 

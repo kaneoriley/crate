@@ -45,7 +45,7 @@ import static me.oriley.crate.utils.JavaPoetUtils.*;
 public final class CrateGenerator {
 
     private enum FolderClass {
-        NONE, FONT, IMAGE, SVG, ASSET
+        NONE, FONT, IMAGE, VIDEO, SVG, ASSET
     }
 
     // Deprecated options
@@ -61,6 +61,7 @@ public final class CrateGenerator {
     private static final List<String> FONT_TYPES = Arrays.asList("application/x-font-otf", "application/x-font-ttf");
     private static final List<String> IMAGE_TYPES = Arrays.asList("image/jpeg", "image/png", "image/pjpeg", "image/gif", "image/bmp", "image/x-windows-bmp", "image/webp");
     private static final List<String> SVG_TYPES = Arrays.asList("image/svg+xml", "image/svg+xml-compressed");
+    private static final List<String> VIDEO_TYPES = Arrays.asList("video/3gpp", "video/mp4", "video/webm");
 
     private static final Logger log = LoggerFactory.getLogger(CrateGenerator.class.getSimpleName());
 
@@ -259,6 +260,10 @@ public final class CrateGenerator {
 
                     asset = new ImageAssetHolder(fieldName, filePath, gzipped, width, height);
                     builder.addField(createImageAssetField((ImageAssetHolder) asset));
+                } else if (VIDEO_TYPES.contains(contentType)) {
+                    folderClass = checkFolderClass(folderClass, FolderClass.VIDEO);
+                    asset = new VideoAssetHolder(fieldName, filePath, gzipped);
+                    builder.addField(createVideoAssetField((VideoAssetHolder) asset));
                 } else if (SVG_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.SVG);
                     asset = new SvgAssetHolder(fieldName, filePath, gzipped);
@@ -311,6 +316,8 @@ public final class CrateGenerator {
                 return FontAsset.class;
             case IMAGE:
                 return ImageAsset.class;
+            case VIDEO:
+                return VideoAsset.class;
             case SVG:
                 return SvgAsset.class;
         }
@@ -400,6 +407,14 @@ public final class CrateGenerator {
     @NonNull
     private FieldSpec createImageAssetField(@NonNull ImageAssetHolder asset) {
         FieldSpec.Builder builder = FieldSpec.builder(ImageAsset.class, asset.mFieldName)
+                .addModifiers(PUBLIC, FINAL);
+        asset.addInitialiser(builder);
+        return builder.build();
+    }
+
+    @NonNull
+    private FieldSpec createVideoAssetField(@NonNull VideoAssetHolder asset) {
+        FieldSpec.Builder builder = FieldSpec.builder(VideoAsset.class, asset.mFieldName)
                 .addModifiers(PUBLIC, FINAL);
         asset.addInitialiser(builder);
         return builder.build();
@@ -529,6 +544,20 @@ public final class CrateGenerator {
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
             builder.initializer("new $T($S, $L, $L, $L)", ImageAsset.class, mPath, mGzipped, mWidth, mHeight);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static final class VideoAssetHolder extends AssetHolder {
+
+        private VideoAssetHolder(@NonNull String fieldName,
+                                 @NonNull String path,
+                                 boolean gzipped) {
+            super(fieldName, path, gzipped);
+        }
+
+        public void addInitialiser(@NonNull FieldSpec.Builder builder) {
+            builder.initializer("new $T($S, $L)", VideoAsset.class, mPath, mGzipped);
         }
     }
 

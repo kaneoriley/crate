@@ -7,6 +7,7 @@ Change Log
  *  Improvement: Add Loader classes for better adapter usage
  *  Feature: Add `asUri()` method to assets to get path as a Uri String
  *  Improvement: Update cache handling and add max size settings to the builder
+ *  Feature: Added `VideoAsset` type for supported media formats
 
 ## Version 0.3
 
