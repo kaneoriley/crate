@@ -47,7 +47,12 @@ explanation below).
 
 Content Types: "video/3gpp", "video/mp4", "video/webm"
 
-No extra methods.
+`getWidth()`: Returns the width of the video, as calculated at compile time by `MediaInfo`.
+`getHeight()`: Returns the height of the video, as calculated at compile time by `MediaInfo`.
+
+* NOTE: I have noticed `MediaInfo` can be a bit hit and miss, so if you have any issues (most likely all width and
+height values being invalid), feel free to let me know some details (operating system, IDE, Gradle/Java version etc)
+so I can look into it.
 
 ## Usage
 
@@ -175,7 +180,7 @@ repositories {
 ```gradle
 buildscript {
     dependencies {
-        classpath 'me.oriley.crate:crate-plugin:0.3'
+        classpath 'me.oriley.crate:crate-plugin:0.4'
     }
 }
 ```
@@ -193,7 +198,7 @@ apply plugin: 'me.oriley.crate-plugin'
 ...
 
 dependencies {
-    compile 'me.oriley.crate:crate-runtime:0.3'
+    compile 'me.oriley.crate:crate-runtime:0.4'
 
     // Optional, only required if you plan to use the helper SVG parsing and caching methods
     compile 'com.caverock:androidsvg:1.2.1'

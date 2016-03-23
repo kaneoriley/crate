@@ -8,6 +8,7 @@ Change Log
  *  Feature: Add `asUri()` method to assets to get path as a Uri String
  *  Improvement: Update cache handling and add max size settings to the builder
  *  Feature: Added `VideoAsset` type for supported media formats
+ *  Feature: Add `crate-mediainfo` to read video attributes into asset for quick access
 
 ## Version 0.3
 
