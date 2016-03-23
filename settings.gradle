@@ -1,4 +1,4 @@
-include ':crate-plugin', ':crate-common', ':crate-runtime', ':crate-dummy'
+include ':crate-plugin', ':crate-common', ':crate-runtime', ':crate-dummy', ':crate-mediainfo'
 
 if (!"true".equals(System.getenv("TRAVIS"))) {
     include ':crate-sample'

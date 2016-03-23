@@ -23,6 +23,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
 import com.squareup.javapoet.*;
+import me.oriley.crate.mediainfo.CrateMediaInfo;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,9 @@ public final class CrateGenerator {
     private static final Logger log = LoggerFactory.getLogger(CrateGenerator.class.getSimpleName());
 
     @NonNull
+    private final CrateMediaInfo mMediaInfo = new CrateMediaInfo();
+
+    @NonNull
     private final String mBaseOutputDir;
 
     @NonNull
@@ -73,13 +77,16 @@ public final class CrateGenerator {
 
     private final boolean mDebugLogging;
 
+
     public CrateGenerator(@NonNull String baseOutputDir,
                           @NonNull String variantAssetDir,
                           boolean debugLogging) {
         mBaseOutputDir = baseOutputDir;
         mVariantAssetDir = variantAssetDir;
         mDebugLogging = debugLogging;
+
         log("CrateGenerator constructed\n" +
+                "    MediaInfo Support: " + mMediaInfo.isAvailable() + "\n" +
                 "    Output: " + mBaseOutputDir + "\n" +
                 "    Asset: " + mVariantAssetDir + "\n" +
                 "    Package: " + PACKAGE_NAME + "\n" +
@@ -87,6 +94,7 @@ public final class CrateGenerator {
                 "    Static: " + STATIC_MODE + "\n" +
                 "    Logging: " + mDebugLogging);
     }
+
 
     public void buildCrate() {
         long startNanos = System.nanoTime();
@@ -262,7 +270,8 @@ public final class CrateGenerator {
                     builder.addField(createImageAssetField((ImageAssetHolder) asset));
                 } else if (VIDEO_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.VIDEO);
-                    asset = new VideoAssetHolder(fieldName, filePath, gzipped);
+                    int[] dimens = mMediaInfo.getDimensions(file);
+                    asset = new VideoAssetHolder(fieldName, filePath, gzipped, dimens[0], dimens[1]);
                     builder.addField(createVideoAssetField((VideoAssetHolder) asset));
                 } else if (SVG_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.SVG);
@@ -550,14 +559,22 @@ public final class CrateGenerator {
     @SuppressWarnings("unused")
     private static final class VideoAssetHolder extends AssetHolder {
 
+        final int mWidth;
+
+        final int mHeight;
+
         private VideoAssetHolder(@NonNull String fieldName,
                                  @NonNull String path,
-                                 boolean gzipped) {
+                                 boolean gzipped,
+                                 int width,
+                                 int height) {
             super(fieldName, path, gzipped);
+            mWidth = width;
+            mHeight = height;
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $L)", VideoAsset.class, mPath, mGzipped);
+            builder.initializer("new $T($S, $L, $L, $L)", VideoAsset.class, mPath, mGzipped, mWidth, mHeight);
         }
     }
 
