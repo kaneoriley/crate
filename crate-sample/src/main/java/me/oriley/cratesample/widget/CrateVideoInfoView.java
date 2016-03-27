@@ -22,6 +22,7 @@ import android.support.annotation.Nullable;
 import android.support.v7.widget.CardView;
 import android.util.AttributeSet;
 import android.view.View;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -30,7 +31,7 @@ import me.oriley.cratesample.R;
 
 import static java.util.Locale.US;
 
-public class CrateVideoInfoView extends CardView {
+public class CrateVideoInfoView extends FrameLayout {
 
     private static final String RESOLUTION_FORMAT = "%d x %d";
 
