@@ -19,7 +19,6 @@ package me.oriley.cratesample.loaders;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.view.animation.OvershootInterpolator;
 import me.oriley.crate.Crate;
 import me.oriley.crate.SvgAsset;
@@ -44,15 +43,15 @@ public final class CrateSvgLoader extends AssetLoader<CrateSvgView, SvgAsset, Bi
         view.setBitmapScale(0.3f, 0.3f);
     }
 
-    @Nullable
+    @NonNull
     @Override
-    protected Result<Bitmap> load(@NonNull SvgAsset asset) {
+    protected Result<Bitmap> load(@NonNull CrateSvgView view, @NonNull SvgAsset asset) {
         boolean cached = mCrate.isSvgDrawableCached(asset);
         return new Result<>(mCrate.getSvgBitmap(asset), asset, cached);
     }
 
     @Override
-    protected void apply(@NonNull Result<Bitmap> result, @NonNull CrateSvgView view) {
+    protected void apply(@NonNull CrateSvgView view, @NonNull Result<Bitmap> result) {
         view.setBitmap(result.payload);
         view.setTagColor(result.cached ? Color.GREEN : Color.RED);
         view.animateBitmap()

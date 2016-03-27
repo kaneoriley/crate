@@ -18,7 +18,6 @@ package me.oriley.crate.loader;
 
 import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.view.animation.OvershootInterpolator;
 import android.widget.ImageView;
 import me.oriley.crate.Crate;
@@ -43,15 +42,15 @@ public final class SvgLoader extends AssetLoader<ImageView, SvgAsset, Bitmap> {
         view.setScaleY(0.3f);
     }
 
-    @Nullable
+    @NonNull
     @Override
-    protected Result<Bitmap> load(@NonNull SvgAsset asset) {
+    protected Result<Bitmap> load(@NonNull ImageView view, @NonNull SvgAsset asset) {
         boolean cached = mCrate.isSvgDrawableCached(asset);
         return new Result<>(mCrate.getSvgBitmap(asset), asset, cached);
     }
 
     @Override
-    protected void apply(@NonNull Result<Bitmap> result, @NonNull ImageView view) {
+    protected void apply(@NonNull ImageView view, @NonNull Result<Bitmap> result) {
         view.setImageBitmap(result.payload);
         view.animate().alpha(1f).scaleX(1f).scaleY(1f)
                 .setInterpolator(new OvershootInterpolator())

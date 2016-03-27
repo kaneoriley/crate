@@ -19,7 +19,6 @@ package me.oriley.cratesample.loaders;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.view.animation.DecelerateInterpolator;
 import me.oriley.crate.Crate;
 import me.oriley.crate.ImageAsset;
@@ -44,15 +43,15 @@ public class CrateBitmapLoader extends AssetLoader<CrateBitmapView, ImageAsset, 
         view.setBitmapRotation(180f);
     }
 
-    @Nullable
+    @NonNull
     @Override
-    protected Result<Bitmap> load(@NonNull ImageAsset asset) {
+    protected Result<Bitmap> load(@NonNull CrateBitmapView view, @NonNull ImageAsset asset) {
         boolean cached = mCrate.isBitmapCached(asset);
         return new Result<>(mCrate.getBitmap(asset), asset, cached);
     }
 
     @Override
-    protected void apply(@NonNull Result<Bitmap> result, @NonNull CrateBitmapView view) {
+    protected void apply(@NonNull CrateBitmapView view, @NonNull Result<Bitmap> result) {
         view.setBitmap(result.payload);
         view.setTagColor(result.cached ? Color.GREEN : Color.RED);
         view.animateBitmap()

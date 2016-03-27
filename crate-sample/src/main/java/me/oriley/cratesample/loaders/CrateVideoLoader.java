@@ -19,7 +19,6 @@ package me.oriley.cratesample.loaders;
 import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import me.oriley.crate.Crate;
 import me.oriley.crate.VideoAsset;
 import me.oriley.crate.loader.AssetLoader;
@@ -40,9 +39,9 @@ public class CrateVideoLoader extends AssetLoader<VideoListFragment, VideoAsset,
         // TODO: Detach current media player?
     }
 
-    @Nullable
+    @NonNull
     @Override
-    protected Result<MediaPlayer> load(@NonNull VideoAsset asset) {
+    protected Result<MediaPlayer> load(@NonNull VideoListFragment fragment, @NonNull VideoAsset asset) {
         MediaPlayer mediaPlayer = new MediaPlayer();
 
         try {
@@ -59,7 +58,7 @@ public class CrateVideoLoader extends AssetLoader<VideoListFragment, VideoAsset,
     }
 
     @Override
-    protected void apply(@NonNull Result<MediaPlayer> result, @NonNull VideoListFragment fragment) {
+    protected void apply(@NonNull VideoListFragment fragment, @NonNull Result<MediaPlayer> result) {
         if (result.payload != null) {
             fragment.setMediaPlayer(result.payload);
         }

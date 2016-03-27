@@ -60,17 +60,17 @@ public abstract class AssetLoader<T, A extends Asset, P> {
 
 
     public void loadInto(@NonNull T target, @NonNull A asset) {
+        initialiseTarget(target, asset);
         mReferenceMap.put(target, asset);
         queueAsset(target, asset);
-        initialiseTarget(target, asset);
     }
 
     protected abstract void initialiseTarget(@NonNull T target, @NonNull A asset);
 
-    @Nullable
-    protected abstract Result<P> load(@NonNull A asset);
+    @NonNull
+    protected abstract Result<P> load(@NonNull T target, @NonNull A asset);
 
-    protected abstract void apply(@NonNull Result<P> result, @NonNull T target);
+    protected abstract void apply(@NonNull T target, @NonNull Result<P> result);
 
     private void queueAsset(@NonNull T target, @NonNull A asset) {
         PendingTarget p = new PendingTarget(target, asset);
@@ -116,7 +116,7 @@ public abstract class AssetLoader<T, A extends Asset, P> {
             }
 
             try {
-                Result<P> p = load(pendingTarget.asset);
+                Result<P> p = load(pendingTarget.target, pendingTarget.asset);
                 if (!isReused(pendingTarget)) {
                     mHandler.post(new UpdateUiRunnable(pendingTarget, p));
                 }
@@ -143,7 +143,7 @@ public abstract class AssetLoader<T, A extends Asset, P> {
         public void run() {
             if (!isReused(pendingTarget)) {
                 if (result != null) {
-                    apply(result, pendingTarget.target);
+                    apply(pendingTarget.target, result);
                 }
             }
         }
