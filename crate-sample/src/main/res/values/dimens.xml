@@ -10,9 +10,13 @@
     <!-- Pre lollipop no lika the corna -->
     <dimen name="image_card_corner_radius">0dp</dimen>
     <dimen name="text_card_corner_radius">0dp</dimen>
+    <dimen name="video_card_corner_radius">0dp</dimen>
 
     <dimen name="bitmap_tag_size">64dp</dimen>
     <dimen name="font_tag_size">32dp</dimen>
     <dimen name="svg_tag_size">32dp</dimen>
+
+    <integer name="bitmap_column_count">2</integer>
+    <integer name="svg_column_count">3</integer>
 
 </resources>

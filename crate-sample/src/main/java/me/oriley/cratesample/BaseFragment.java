@@ -14,26 +14,25 @@
  * limitations under the License.
  */
 
-package me.oriley.crate;
+package me.oriley.cratesample;
 
-@SuppressWarnings("unused")
-public class VideoAsset extends Asset {
+import android.os.Bundle;
+import android.support.annotation.Nullable;
+import android.support.v4.app.Fragment;
+import android.view.View;
+import butterknife.ButterKnife;
 
-    final int mWidth;
+public abstract class BaseFragment extends Fragment {
 
-    final int mHeight;
-
-    VideoAsset(String path, boolean gzipped, int width, int height) {
-        super(path, gzipped);
-        mWidth = width;
-        mHeight = height;
+    @Override
+    public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        ButterKnife.bind(this, view);
     }
 
-    public int getWidth() {
-        return mWidth;
-    }
-
-    public int getHeight() {
-        return mHeight;
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        ButterKnife.unbind(this);
     }
 }

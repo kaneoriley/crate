@@ -17,6 +17,7 @@
 package me.oriley.crate;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.*;
 import android.graphics.drawable.PictureDrawable;
@@ -88,6 +89,11 @@ public final class Crate {
             stream = new GZIPInputStream(stream);
         }
         return stream;
+    }
+
+    @NonNull
+    public final AssetFileDescriptor openFd(@NonNull Asset asset) throws IOException {
+        return mAssetManager.openFd(asset.getPath());
     }
 
     @Nullable

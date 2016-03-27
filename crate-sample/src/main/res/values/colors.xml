@@ -4,8 +4,11 @@
     <color name="colorPrimary">#bb8a48</color>
     <color name="colorPrimaryDark">#845f3b</color>
     <color name="colorAccent">#cd9945</color>
+    <color name="colorAccentLight">#ffcc80</color>
 
     <color name="activityBackground">#F5F5F5</color>
     <color name="tileColor">#FAFAFA</color>
+
+    <color name="videoForegroundColor">#131313</color>
 
 </resources>

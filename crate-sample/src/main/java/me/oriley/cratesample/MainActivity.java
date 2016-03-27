@@ -5,23 +5,30 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- *  Unless required by applicable law or agreed to in writing, software
- *  distributed under the License is distributed on an "AS IS" BASIS,
- *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- *  limitations under the License.
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 package me.oriley.cratesample;
 
 import android.content.DialogInterface;
+import android.content.res.Resources;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.support.annotation.IdRes;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.NavigationView.OnNavigationItemSelectedListener;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.GravityCompat;
+import android.support.v4.view.ViewPager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
@@ -34,6 +41,7 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import butterknife.Bind;
 import me.oriley.crate.Crate;
 import me.oriley.crate.FontAsset;
 import me.oriley.crate.ImageAsset;
@@ -44,13 +52,35 @@ import me.oriley.cratesample.loaders.CrateSvgLoader;
 import me.oriley.cratesample.widget.CrateBitmapView;
 import me.oriley.cratesample.widget.CrateFontView;
 import me.oriley.cratesample.widget.CrateSvgView;
-public class MainActivity extends AppCompatActivity implements NavigationView.OnNavigationItemSelectedListener {
 
-    private DrawerLayout mDrawerLayout;
+public class MainActivity extends BaseActivity implements OnNavigationItemSelectedListener {
 
-    private RecyclerView mRecyclerView;
+    private static final String KEY_LAYOUT_MANAGER_STATE = "layoutManagerState";
+    private static final String KEY_CURRENT_ITEM = "currentItem";
+
+    @Bind(R.id.nav_view)
+    NavigationView mNavigationView;
+
+    @Bind(R.id.drawer_layout)
+    DrawerLayout mDrawerLayout;
+
+    @Bind(R.id.recycler_view)
+    RecyclerView mRecyclerView;
+
+    @Bind(R.id.view_pager)
+    ViewPager mViewPager;
 
     private Crate mCrate;
+
+    @Nullable
+    private RecyclerView.LayoutManager mLayoutManager;
+
+    @IdRes
+    private int mCurrentItem;
+
+    private int mBitmapColumnCount;
+
+    private int mSvgColumnCount;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -63,9 +93,10 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
 
         setContentView(R.layout.activity_main);
 
-        mDrawerLayout = (DrawerLayout) findViewById(R.id.drawer_layout);
-        mRecyclerView = (RecyclerView) findViewById(R.id.recycler_view);
-        assert mRecyclerView != null;
+        Resources res = getResources();
+        mBitmapColumnCount = res.getInteger(R.integer.bitmap_column_count);
+        mSvgColumnCount = res.getInteger(R.integer.svg_column_count);
+
         mRecyclerView.setHasFixedSize(true);
 
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -77,15 +108,29 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         mDrawerLayout.setDrawerListener(toggle);
         toggle.syncState();
 
-        NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
-        if (navigationView != null) {
-            navigationView.setNavigationItemSelectedListener(this);
-            navigationView.setCheckedItem(R.id.nav_fonts);
+        mNavigationView.setNavigationItemSelectedListener(this);
+
+        mCurrentItem = R.id.nav_fonts;
+        Parcelable layoutState = null;
+        if (savedInstanceState != null) {
+            mCurrentItem = savedInstanceState.getInt(KEY_CURRENT_ITEM, mCurrentItem);
+            layoutState = savedInstanceState.getParcelable(KEY_LAYOUT_MANAGER_STATE);
         }
 
-        if (savedInstanceState == null) {
-            onNavigationItemSelected(R.id.nav_fonts);
+        mNavigationView.setCheckedItem(mCurrentItem);
+        mLayoutManager = getLayoutManager(mCurrentItem);
+        mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerView.post(new Runnable() {
+            @Override
+            public void run() {
+                mRecyclerView.setAdapter(getAdapter(mCurrentItem));
+            }
+        });
+
+        if (mLayoutManager != null) {
+            mLayoutManager.onRestoreInstanceState(layoutState);
         }
+        updateViews();
     }
 
     @Override
@@ -98,8 +143,18 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        if (mLayoutManager != null) {
+            outState.putParcelable(KEY_LAYOUT_MANAGER_STATE, mLayoutManager.onSaveInstanceState());
+        }
+        outState.putInt(KEY_CURRENT_ITEM, mCurrentItem);
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
     protected void onDestroy() {
         mRecyclerView.setAdapter(null);
+        mViewPager.setAdapter(null);
 
         mCrate.clear();
         mCrate = null;
@@ -113,34 +168,68 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
     }
 
     private boolean onNavigationItemSelected(@IdRes int id) {
-        boolean scrollAdapter = false;
-
-        if (id == R.id.nav_fonts) {
-            scrollAdapter = true;
-            mRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-            mRecyclerView.post(new Runnable() {
-                @Override
-                public void run() {
-                    mRecyclerView.setAdapter(new FontRecyclerAdapter(mCrate, mRecyclerView.getMeasuredWidth()));
-                }
-            });
-        } else if (id == R.id.nav_images) {
-            scrollAdapter = true;
-            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 2));
-            mRecyclerView.setAdapter(new BitmapRecyclerAdapter(mCrate));
-        } else if (id == R.id.nav_svgs) {
-            scrollAdapter = true;
-            mRecyclerView.setLayoutManager(new GridLayoutManager(this, 3));
-            mRecyclerView.setAdapter(new SvgRecyclerAdapter(mCrate));
-        } else if (id == R.id.nav_info) {
+        if (id == R.id.nav_info) {
             showInfoDialog();
+            mDrawerLayout.closeDrawer(GravityCompat.START);
+            return true;
         }
 
-        if (scrollAdapter) {
-            mRecyclerView.scrollToPosition(Integer.MAX_VALUE / 2);
-        }
+        mCurrentItem = id;
+        mLayoutManager = getLayoutManager(mCurrentItem);
+        mRecyclerView.setLayoutManager(mLayoutManager);
+        mRecyclerView.post(new Runnable() {
+            @Override
+            public void run() {
+                RecyclerView.Adapter adapter = getAdapter(mCurrentItem);
+                mRecyclerView.setAdapter(adapter);
+                if (adapter != null) {
+                    mRecyclerView.scrollToPosition(Integer.MAX_VALUE / 2);
+                }
+            }
+        });
+        mViewPager.setAdapter(id == R.id.nav_video ? new VideoPagerAdapter(this) : null);
+
+        updateViews();
         mDrawerLayout.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    @Nullable
+    private RecyclerView.LayoutManager getLayoutManager(@IdRes int itemId) {
+        switch (itemId) {
+            case R.id.nav_fonts:
+                return new LinearLayoutManager(this);
+            case R.id.nav_images:
+                return new GridLayoutManager(this, mBitmapColumnCount);
+            case R.id.nav_svgs:
+                return new GridLayoutManager(this, mSvgColumnCount);
+            default:
+                return null;
+        }
+    }
+
+    @Nullable
+    private RecyclerView.Adapter getAdapter(@IdRes int itemId) {
+        switch (itemId) {
+            case R.id.nav_fonts:
+                return new FontRecyclerAdapter(mCrate, mRecyclerView.getMeasuredWidth());
+            case R.id.nav_images:
+                return new BitmapRecyclerAdapter(mCrate);
+            case R.id.nav_svgs:
+                return new SvgRecyclerAdapter(mCrate);
+            default:
+                return null;
+        }
+    }
+
+    private void updateViews() {
+        if (mCurrentItem == R.id.nav_video) {
+            mRecyclerView.setVisibility(View.GONE);
+            mViewPager.setVisibility(View.VISIBLE);
+        } else {
+            mRecyclerView.setVisibility(View.VISIBLE);
+            mViewPager.setVisibility(View.GONE);
+        }
     }
 
     private void showInfoDialog() {
@@ -290,6 +379,27 @@ public class MainActivity extends AppCompatActivity implements NavigationView.On
         @Override
         public int getItemCount() {
             return Integer.MAX_VALUE;
+        }
+    }
+
+    private static final class VideoPagerAdapter extends FragmentStatePagerAdapter {
+
+        @NonNull
+        private final VideoListFragment mFragment;
+
+        public VideoPagerAdapter(@NonNull AppCompatActivity activity) {
+            super(activity.getSupportFragmentManager());
+            mFragment = new VideoListFragment();
+        }
+
+        @Override
+        public Fragment getItem(int position) {
+            return mFragment;
+        }
+
+        @Override
+        public int getCount() {
+            return 1;
         }
     }
 }

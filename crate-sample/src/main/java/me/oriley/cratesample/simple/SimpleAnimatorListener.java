@@ -14,26 +14,29 @@
  * limitations under the License.
  */
 
-package me.oriley.crate;
+package me.oriley.cratesample.simple;
 
-@SuppressWarnings("unused")
-public class VideoAsset extends Asset {
+import android.animation.Animator;
 
-    final int mWidth;
+public abstract class SimpleAnimatorListener implements Animator.AnimatorListener {
 
-    final int mHeight;
-
-    VideoAsset(String path, boolean gzipped, int width, int height) {
-        super(path, gzipped);
-        mWidth = width;
-        mHeight = height;
+    @Override
+    public void onAnimationStart(Animator animation) {
+        // Override if necessary
     }
 
-    public int getWidth() {
-        return mWidth;
+    @Override
+    public void onAnimationEnd(Animator animation) {
+        // Override if necessary
     }
 
-    public int getHeight() {
-        return mHeight;
+    @Override
+    public void onAnimationCancel(Animator animation) {
+        // Override if necessary
+    }
+
+    @Override
+    public void onAnimationRepeat(Animator animation) {
+        // Override if necessary
     }
 }
