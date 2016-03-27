@@ -53,6 +53,7 @@ public final class CrateCache<K, V> {
         if (currentSize >= mMaxSize) {
             Iterator<Entry<K, V>> iterator = mCache.entrySet().iterator();
             while (currentSize > mMaxSize && iterator.hasNext()) {
+                iterator.next();
                 iterator.remove();
                 currentSize--;
             }
