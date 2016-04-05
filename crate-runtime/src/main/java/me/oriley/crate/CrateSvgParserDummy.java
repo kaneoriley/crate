@@ -16,7 +16,7 @@
 
 package me.oriley.crate;
 
-import android.graphics.drawable.PictureDrawable;
+import android.graphics.Picture;
 import android.support.annotation.Nullable;
 
 import java.io.InputStream;
@@ -25,7 +25,7 @@ public class CrateSvgParserDummy implements CrateSvg.Parser {
 
     @Override
     @Nullable
-    public PictureDrawable parseSvg(@Nullable InputStream is) {
+    public Picture parseSvg(@Nullable InputStream is) {
         return null;
     }
 }

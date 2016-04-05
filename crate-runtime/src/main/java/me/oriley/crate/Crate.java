@@ -28,9 +28,6 @@ import me.oriley.crate.CrateSvg.SvgParseException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.RuntimeException;
-import java.lang.String;
-import java.lang.SuppressWarnings;
 import java.util.zip.GZIPInputStream;
 
 @SuppressWarnings("unused")
@@ -50,7 +47,7 @@ public final class Crate {
     private final CrateCache<ImageAsset, Bitmap> mBitmapCache;
 
     @NonNull
-    private final CrateCache<SvgAsset, PictureDrawable> mSvgCache;
+    private final CrateCache<SvgAsset, Picture> mSvgCache;
 
     @NonNull
     private final CrateSvg.Parser mSvgParser = CrateSvg.getParser();
@@ -116,6 +113,7 @@ public final class Crate {
             try {
                 bitmap = BitmapFactory.decodeStream(stream);
             } finally {
+                //noinspection ThrowFromFinallyBlock
                 stream.close();
             }
         } catch (IOException e) {
@@ -174,64 +172,64 @@ public final class Crate {
 
     @Nullable
     public Bitmap getSvgBitmap(@NonNull SvgAsset svgAsset) {
-        return getSvgBitmap(svgAsset, 1f);
-    }
-
-    @Nullable
-    public Bitmap getSvgBitmap(@NonNull SvgAsset svgAsset, float scale) {
         String key = svgAsset.mPath;
-
-        PictureDrawable pictureDrawable = getSvgDrawable(svgAsset);
-        if (pictureDrawable == null) {
-            if (DEBUG) Log.d(TAG, "PictureDrawable is null for key: " + key);
+        Picture picture = getSvgPicture(svgAsset);
+        if (picture == null) {
+            if (DEBUG) Log.d(TAG, "Picture is null for key: " + key);
             return null;
         }
 
-        int desiredWidth = (int) (pictureDrawable.getIntrinsicWidth() * scale);
-        int desiredHeight = (int) (pictureDrawable.getIntrinsicHeight() * scale);
+        int desiredWidth = picture.getWidth();
+        int desiredHeight = picture.getHeight();
         Bitmap bitmap = Bitmap.createBitmap(desiredWidth, desiredHeight, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
-        canvas.drawPicture(pictureDrawable.getPicture(), new Rect(0, 0, desiredWidth, desiredHeight));
-
+        canvas.drawPicture(picture, new Rect(0, 0, desiredWidth, desiredHeight));
         return bitmap;
     }
 
     @Nullable
     public PictureDrawable getSvgDrawable(@NonNull SvgAsset svgAsset) {
+        Picture picture = getSvgPicture(svgAsset);
+        return picture != null ? new PictureDrawable(picture) : null;
+    }
+
+    @Nullable
+    public Picture getSvgPicture(@NonNull SvgAsset svgAsset) {
         String key = svgAsset.getPath();
         if (mSvgCache.containsKey(svgAsset)) {
-            if (DEBUG) Log.d(TAG, "Using cached PictureDrawable for key: " + key);
+            if (DEBUG) Log.d(TAG, "Using cached Picture for key: " + key);
             return mSvgCache.get(svgAsset);
         }
 
-        PictureDrawable drawable = null;
+        Picture picture = null;
         try {
             InputStream stream = open(svgAsset);
             //noinspection TryFinallyCanBeTryWithResources
             try {
-                drawable = mSvgParser.parseSvg(stream);
+                picture = mSvgParser.parseSvg(stream);
             } finally {
+                //noinspection ThrowFromFinallyBlock
                 stream.close();
             }
         } catch (IOException | SvgParseException e) {
             Log.e(TAG, "Failed to load SVG for key: " + key, e);
             e.printStackTrace();
         } finally {
-            if (drawable != null) {
+            if (picture != null) {
                 if (DEBUG) Log.d(TAG, "SVG loaded for key: " + key);
-                cachePictureDrawable(svgAsset, drawable);
+                cachePicture(svgAsset, picture);
             }
         }
-        return drawable;
+        return picture;
     }
 
-    public boolean isSvgDrawableCached(@NonNull SvgAsset key) {
+    public boolean isSvgCached(@NonNull SvgAsset key) {
         return mSvgCache.containsKey(key);
     }
 
-    private void cachePictureDrawable(@NonNull SvgAsset key, @NonNull PictureDrawable drawable) {
+    private void cachePicture(@NonNull SvgAsset key, @NonNull Picture picture) {
         if (mSvgCache.maxSize() > 0) {
-            mSvgCache.put(key, drawable);
+            mSvgCache.put(key, picture);
         }
     }
 

@@ -45,7 +45,7 @@ public final class SvgLoader extends AssetLoader<ImageView, SvgAsset, Bitmap> {
     @NonNull
     @Override
     protected Result<Bitmap> load(@NonNull ImageView view, @NonNull SvgAsset asset) {
-        boolean cached = mCrate.isSvgDrawableCached(asset);
+        boolean cached = mCrate.isSvgCached(asset);
         return new Result<>(mCrate.getSvgBitmap(asset), asset, cached);
     }
 
