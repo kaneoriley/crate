@@ -1,7 +1,9 @@
 Change Log
 ==========
 
-## Version 0.4 WIP
+## Version 0.4
+
+_2016-04-05_
 
  *  Feature: Add automatic Gzip wrapping and `isGzipped()` method for all assets
  *  Improvement: Add Loader classes for better adapter usage
@@ -12,7 +14,7 @@ Change Log
 
 ## Version 0.3
 
-_2016-3-17_
+_2016-03-17_
 
 ### Major refactor - API breaking changes
 
@@ -34,7 +36,7 @@ _2016-3-17_
 
 ## Version 0.2
 
-_2016-3-14_
+_2016-03-14_
 
  *  Improvement: Add debug logging for testing
  *  Improvement: Use TreeMap to keep LIST fields sorted by field name
@@ -48,7 +50,7 @@ _2016-3-14_
 
 ## Version 0.1.1
 
-_2016-3-13_
+_2016-03-13_
 
  *  Feature: Add special handling for font assets
  *  Fix: Validate Crate JAR hash and force mergeAssets task to run if changed
