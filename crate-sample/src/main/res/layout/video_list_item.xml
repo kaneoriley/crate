@@ -21,8 +21,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:foreground="?android:attr/selectableItemBackground"
-        app:cardBackgroundColor="@color/tileColor"
         app:cardElevation="2dp"
-        app:cardCornerRadius="@dimen/text_card_corner_radius"
+        app:cardCornerRadius="@dimen/video_card_corner_radius"
         app:cardPreventCornerOverlap="false"
         app:cardUseCompatPadding="true"/>

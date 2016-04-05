@@ -20,16 +20,15 @@
        xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <ImageView
-            android:id="@+id/image_view"
+            android:id="@+id/tagged_card_item"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
             android:scaleType="centerCrop"
-            android:radius="@dimen/image_card_corner_radius"
             tools:ignore="ContentDescription"/>
 
     <me.oriley.cratesample.widget.TagView
-            android:id="@+id/tag_view"
+            android:id="@+id/tagged_card_tag"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:tagSize="@dimen/bitmap_tag_size"/>

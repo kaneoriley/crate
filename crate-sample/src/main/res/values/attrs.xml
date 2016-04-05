@@ -33,6 +33,10 @@
         <attr name="android:scaleType" />
     </declare-styleable>
 
+    <declare-styleable name="TaggedCardView">
+        <attr name="forceSquare" format="boolean" />
+    </declare-styleable>
+
     <declare-styleable name="TagView">
         <attr name="tagSize" format="dimension" />
     </declare-styleable>

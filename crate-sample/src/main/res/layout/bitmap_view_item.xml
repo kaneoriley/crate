@@ -19,8 +19,10 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
-        android:layout_height="160dp"
-        app:cardElevation="4dp"
-        app:cardCornerRadius="@dimen/image_card_corner_radius"
+        android:layout_height="match_parent"
+        android:layout_margin="8dp"
+        app:cardBackgroundColor="@color/bitmapCardColor"
+        app:cardElevation="2dp"
+        app:cardCornerRadius="@dimen/bitmap_card_corner_radius"
         app:cardPreventCornerOverlap="false"
         app:cardUseCompatPadding="true"/>

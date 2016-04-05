@@ -22,15 +22,15 @@ import android.support.annotation.NonNull;
 import me.oriley.crate.Crate;
 import me.oriley.crate.VideoAsset;
 import me.oriley.crate.loader.AssetLoader;
-import me.oriley.cratesample.VideoListFragment;
+import me.oriley.cratesample.fragments.VideoListFragment;
 
 import java.io.IOException;
 
 public class CrateVideoLoader extends AssetLoader<VideoListFragment, VideoAsset, MediaPlayer> {
 
 
-    public CrateVideoLoader(@NonNull Crate crate) {
-        super(crate);
+    public CrateVideoLoader(@NonNull Crate crate, long loadDelayMillis) {
+        super(crate, loadDelayMillis);
     }
 
 

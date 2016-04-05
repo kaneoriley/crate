@@ -17,6 +17,7 @@
 package me.oriley.crate.loader;
 
 import android.os.Handler;
+import android.support.annotation.CallSuper;
 import android.support.annotation.Nullable;
 import android.util.Log;
 import me.oriley.crate.Asset;
@@ -27,13 +28,13 @@ import android.support.annotation.NonNull;
 import java.util.Collections;
 import java.util.Map;
 import java.util.WeakHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 
 @SuppressWarnings("unused")
 public abstract class AssetLoader<T, A extends Asset, P> {
 
     private static final String TAG = AssetLoader.class.getSimpleName();
+    private static final int NO_DELAY = -1;
 
     // From AsyncTask
     private static final int CPU_COUNT = Runtime.getRuntime().availableProcessors();
@@ -47,22 +48,36 @@ public abstract class AssetLoader<T, A extends Asset, P> {
     private final Map<T, A> mReferenceMap = Collections.synchronizedMap(new WeakHashMap<T, A>());
 
     @NonNull
-    private final ExecutorService mExecutorService;
+    private final ScheduledThreadPoolExecutor mExecutorService;
 
     @NonNull
     private final Handler mHandler = new Handler();
 
+    private final long mDelay;
 
-    protected AssetLoader(@NonNull Crate crate) {
+
+    public AssetLoader(@NonNull Crate crate) {
+        this(crate, 0);
+    }
+
+    public AssetLoader(@NonNull Crate crate, long loadDelayMillis) {
         mCrate = crate;
-        mExecutorService = Executors.newFixedThreadPool(MAXIMUM_POOL_SIZE);
+        mDelay = loadDelayMillis;
+
+        mExecutorService = new ScheduledThreadPoolExecutor(CORE_POOL_SIZE);
+        mExecutorService.setMaximumPoolSize(MAXIMUM_POOL_SIZE);
+        mExecutorService.setKeepAliveTime(0L, TimeUnit.MILLISECONDS);
     }
 
 
     public void loadInto(@NonNull T target, @NonNull A asset) {
+        loadInto(target, asset, NO_DELAY);
+    }
+
+    public void loadInto(@NonNull T target, @NonNull A asset, long delay) {
         initialiseTarget(target, asset);
         mReferenceMap.put(target, asset);
-        queueAsset(target, asset);
+        queueAsset(target, asset, delay);
     }
 
     protected abstract void initialiseTarget(@NonNull T target, @NonNull A asset);
@@ -72,13 +87,15 @@ public abstract class AssetLoader<T, A extends Asset, P> {
 
     protected abstract void apply(@NonNull T target, @NonNull Result<P> result);
 
-    private void queueAsset(@NonNull T target, @NonNull A asset) {
+    private void queueAsset(@NonNull T target, @NonNull A asset, long delay) {
         PendingTarget p = new PendingTarget(target, asset);
-        mExecutorService.submit(new PayloadRunnable(p));
+        mExecutorService.schedule(new PayloadRunnable(p), delay >= 0 ? delay : mDelay, TimeUnit.MILLISECONDS);
     }
 
+    @CallSuper
     public void dispose() {
         mHandler.removeCallbacksAndMessages(null);
+        mExecutorService.shutdown();
     }
 
     private boolean isReused(@NonNull PendingTarget pendingTarget) {
@@ -141,10 +158,8 @@ public abstract class AssetLoader<T, A extends Asset, P> {
 
         @Override
         public void run() {
-            if (!isReused(pendingTarget)) {
-                if (result != null) {
-                    apply(pendingTarget.target, result);
-                }
+            if (!isReused(pendingTarget) && result != null) {
+                apply(pendingTarget.target, result);
             }
         }
     }

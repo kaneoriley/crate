@@ -19,19 +19,15 @@ package me.oriley.cratesample.widget;
 import android.content.Context;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v7.widget.CardView;
 import android.util.AttributeSet;
-import android.view.View;
-import android.widget.FrameLayout;
 import android.widget.TextView;
 import butterknife.Bind;
-import butterknife.ButterKnife;
 import me.oriley.crate.VideoAsset;
 import me.oriley.cratesample.R;
 
 import static java.util.Locale.US;
 
-public class CrateVideoInfoView extends FrameLayout {
+public class CrateVideoInfoView extends TaggedCardView<VideoAsset> {
 
     private static final String RESOLUTION_FORMAT = "%d x %d";
 
@@ -55,8 +51,22 @@ public class CrateVideoInfoView extends FrameLayout {
 
     public CrateVideoInfoView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        View.inflate(context, R.layout.crate_video_info_view, this);
-        ButterKnife.bind(this);
+        inflate(R.layout.crate_video_info_view);
+    }
+
+    @Override
+    public void animateCard() {
+
+    }
+
+    @Override
+    public void clearCardAnimation() {
+
+    }
+
+    @Override
+    public void initialise(@Nullable VideoAsset asset) {
+        super.initialise(asset);
     }
 
 

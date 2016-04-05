@@ -15,30 +15,19 @@
   ~ limitations under the License.
   -->
 
-<LinearLayout
+<FrameLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:background="@color/activityBackground"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:context="me.oriley.ncredible.MainActivity"
         tools:showIn="@layout/app_bar_main">
 
-    <android.support.v7.widget.RecyclerView
-            android:id="@+id/recycler_view"
+    <FrameLayout
+            android:id="@+id/fragment"
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_marginLeft="8dp"
-            android:layout_marginRight="8dp"/>
+            android:layout_height="match_parent"/>
 
-    <android.support.v4.view.ViewPager
-            android:id="@+id/view_pager"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:clipChildren="false"/>
-
-</LinearLayout>
+</FrameLayout>

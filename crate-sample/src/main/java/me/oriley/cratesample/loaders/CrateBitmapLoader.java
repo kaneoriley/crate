@@ -17,49 +17,38 @@
 package me.oriley.cratesample.loaders;
 
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.support.annotation.NonNull;
-import android.view.animation.DecelerateInterpolator;
 import me.oriley.crate.Crate;
 import me.oriley.crate.ImageAsset;
 import me.oriley.crate.loader.AssetLoader;
-import me.oriley.cratesample.widget.CrateBitmapView;
+import me.oriley.cratesample.fragments.BitmapListFragment.BitmapHolder;
 
 @SuppressWarnings("unused")
-public class CrateBitmapLoader extends AssetLoader<CrateBitmapView, ImageAsset, Bitmap> {
-
-    private static final long ANIM_DURATION_MILLIS = 700;
+public class CrateBitmapLoader extends AssetLoader<BitmapHolder, ImageAsset, Bitmap> {
 
 
-    public CrateBitmapLoader(@NonNull Crate crate) {
-        super(crate);
+    public CrateBitmapLoader(@NonNull Crate crate, long loadDelayMillis) {
+        super(crate, loadDelayMillis);
     }
 
 
     @Override
-    protected void initialiseTarget(@NonNull CrateBitmapView view, @NonNull ImageAsset asset) {
-        view.setBitmap(null);
-        view.setBitmapScale(8f, 8f);
-        view.setBitmapRotation(180f);
+    protected void initialiseTarget(@NonNull BitmapHolder holder, @NonNull ImageAsset asset) {
+        holder.initialise(asset);
     }
 
     @NonNull
     @Override
-    protected Result<Bitmap> load(@NonNull CrateBitmapView view, @NonNull ImageAsset asset) {
+    protected Result<Bitmap> load(@NonNull BitmapHolder holder, @NonNull ImageAsset asset) {
         boolean cached = mCrate.isBitmapCached(asset);
         return new Result<>(mCrate.getBitmap(asset), asset, cached);
     }
 
     @Override
-    protected void apply(@NonNull CrateBitmapView view, @NonNull Result<Bitmap> result) {
-        view.setBitmap(result.payload);
-        view.setTagColor(result.cached ? Color.GREEN : Color.RED);
-        view.animateBitmap()
-                .setStartDelay(0)
-                .scaleX(1f)
-                .scaleY(1f)
-                .rotation(0f)
-                .setInterpolator(new DecelerateInterpolator())
-                .setDuration(ANIM_DURATION_MILLIS);
+    protected void apply(@NonNull BitmapHolder holder, @NonNull Result<Bitmap> result) {
+        holder.view.setBitmap(result.payload);
+        holder.view.setCached(result.cached);
+        holder.loaded = true;
+        holder.animateIfReady();
     }
 }

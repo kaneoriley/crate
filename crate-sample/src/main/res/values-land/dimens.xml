@@ -1,0 +1,6 @@
+<resources>
+
+    <integer name="bitmap_column_count">3</integer>
+    <integer name="svg_column_count">3</integer>
+
+</resources>

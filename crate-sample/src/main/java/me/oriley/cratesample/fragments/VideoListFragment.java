@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package me.oriley.cratesample;
+package me.oriley.cratesample.fragments;
 
 import android.animation.Animator;
 import android.animation.ValueAnimator;
@@ -37,18 +37,19 @@ import android.widget.FrameLayout;
 import butterknife.Bind;
 import me.oriley.crate.Crate;
 import me.oriley.crate.VideoAsset;
+import me.oriley.cratesample.R;
 import me.oriley.cratesample.listeners.DebouncingClickListener;
 import me.oriley.cratesample.loaders.CrateVideoLoader;
 import me.oriley.cratesample.simple.SimpleAnimatorListener;
 import me.oriley.cratesample.simple.SimpleSurfaceTextureListener;
+import me.oriley.cratesample.widget.CrateCardViewHolder;
 import me.oriley.cratesample.widget.CrateVideoInfoView;
-import me.oriley.cratesample.widget.DividerItemDecoration;
 
 import java.lang.ref.WeakReference;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 
-public class VideoListFragment extends BaseFragment {
+public class VideoListFragment extends RecyclerViewFragment {
 
     @SuppressWarnings("unused")
     private static final String TAG = VideoListFragment.class.getSimpleName();
@@ -84,17 +85,11 @@ public class VideoListFragment extends BaseFragment {
     @Bind(R.id.card_view)
     CardView mCardView;
 
-    @Bind(R.id.recycler_view)
-    RecyclerView mRecyclerView;
-
     @Bind(R.id.video_view)
     TextureView mTextureView;
 
     @NonNull
     private CrateVideoLoader mLoader;
-
-    @NonNull
-    private Crate mCrate;
 
     @Nullable
     private SurfaceTexture mSurface;
@@ -114,14 +109,13 @@ public class VideoListFragment extends BaseFragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mCrate = new Crate.Builder(getActivity()).build();
-        mLoader = new CrateVideoLoader(mCrate);
+        mLoader = new CrateVideoLoader(mCrate, 0);
     }
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.video_list_fragment, container, false);
+        return inflater.inflate(R.layout.fragment_video_list, container, false);
     }
 
     @Override
@@ -132,6 +126,18 @@ public class VideoListFragment extends BaseFragment {
         mShowing = getUserVisibleHint();
         mCardViewContainer.setAlpha(0f);
         updateView();
+    }
+
+    @NonNull
+    @Override
+    public CrateAdapter getAdapter() {
+        return new CrateVideoRecyclerAdapter(this, mCrate);
+    }
+
+    @NonNull
+    @Override
+    public RecyclerView.LayoutManager getLayoutManager() {
+        return new LinearLayoutManager(getActivity());
     }
 
     @Override
@@ -197,7 +203,6 @@ public class VideoListFragment extends BaseFragment {
             Activity activity = getActivity();
             mRecyclerView.setLayoutManager(new LinearLayoutManager(activity));
             mRecyclerView.setAdapter(new CrateVideoRecyclerAdapter(this, mCrate));
-            mRecyclerView.addItemDecoration(new DividerItemDecoration(activity, DividerItemDecoration.VERTICAL_LIST));
         } else {
             mRecyclerView.setLayoutManager(null);
             mRecyclerView.setAdapter(null);
@@ -321,18 +326,14 @@ public class VideoListFragment extends BaseFragment {
         mCardView.setLayoutParams(params);
     }
 
-    private static final class VideoViewHolder extends RecyclerView.ViewHolder {
+    public static final class VideoHolder extends CrateCardViewHolder<VideoAsset, CrateVideoInfoView> {
 
-        @NonNull
-        CrateVideoInfoView view;
-
-        VideoViewHolder(@NonNull View view) {
+        VideoHolder(@NonNull CrateVideoInfoView view) {
             super(view);
-            this.view = (CrateVideoInfoView) view;
         }
     }
 
-    private static final class CrateVideoRecyclerAdapter extends RecyclerView.Adapter<VideoViewHolder> {
+    private static final class CrateVideoRecyclerAdapter extends CrateAdapter<VideoHolder> {
 
         @NonNull
         private final WeakReference<VideoListFragment> mFragment;
@@ -355,19 +356,20 @@ public class VideoListFragment extends BaseFragment {
         };
 
         CrateVideoRecyclerAdapter(@NonNull VideoListFragment fragment, @NonNull Crate crate) {
+            super(crate.assets.videos.LIST.size());
             mFragment = new WeakReference<>(fragment);
             mCrate = crate;
         }
 
         @Override
-        public VideoViewHolder onCreateViewHolder(ViewGroup viewGroup, int position) {
+        public VideoHolder onCreateViewHolder(ViewGroup viewGroup, int viewType) {
             View view = LayoutInflater.from(viewGroup.getContext())
                     .inflate(R.layout.video_list_item, viewGroup, false);
-            return new VideoViewHolder(view);
+            return new VideoHolder((CrateVideoInfoView) view);
         }
 
         @Override
-        public void onBindViewHolder(@NonNull VideoViewHolder holder, int position) {
+        public void onBindViewHolder(@NonNull VideoHolder holder, int position) {
             final VideoAsset asset = mCrate.assets.videos.LIST.get(position);
             holder.view.setAsset(asset);
             holder.view.setOnClickListener(mClickListener);

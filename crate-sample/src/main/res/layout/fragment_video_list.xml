@@ -67,11 +67,13 @@
 
     </FrameLayout>
 
-    <android.support.v7.widget.RecyclerView
+    <me.oriley.cratesample.widget.CrateRecyclerView
             android:id="@+id/recycler_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_below="@id/card_view_container"/>
+            android:layout_below="@id/card_view_container"
+            android:paddingLeft="@dimen/recycler_view_horizontal_padding"
+            android:paddingRight="@dimen/recycler_view_horizontal_padding"/>
 
     <View android:layout_width="match_parent"
           android:layout_height="3dp"

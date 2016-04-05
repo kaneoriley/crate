@@ -19,19 +19,20 @@
        xmlns:app="http://schemas.android.com/apk/res-auto">
 
     <TextView
-            android:id="@+id/text_view"
+            android:id="@+id/tagged_card_item"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="12dp"
+            android:layout_height="match_parent"
             android:gravity="start|center_vertical"
             android:includeFontPadding="false"
+            android:paddingLeft="@dimen/font_view_horizontal_padding"
+            android:paddingRight="@dimen/font_view_horizontal_padding"
             android:ellipsize="end"
             android:textColor="?android:attr/textColorPrimary"
-            android:textSize="36sp"
+            android:textSize="@dimen/font_view_text_size"
             android:singleLine="true"/>
 
     <me.oriley.cratesample.widget.TagView
-            android:id="@+id/tag_view"
+            android:id="@+id/tagged_card_tag"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             app:tagSize="@dimen/font_tag_size"/>

@@ -17,48 +17,38 @@
 package me.oriley.cratesample.loaders;
 
 import android.graphics.Bitmap;
-import android.graphics.Color;
 import android.support.annotation.NonNull;
-import android.view.animation.OvershootInterpolator;
 import me.oriley.crate.Crate;
 import me.oriley.crate.SvgAsset;
 import me.oriley.crate.loader.AssetLoader;
-import me.oriley.cratesample.widget.CrateSvgView;
+import me.oriley.cratesample.fragments.SvgListFragment.SvgHolder;
 
 @SuppressWarnings("unused")
-public final class CrateSvgLoader extends AssetLoader<CrateSvgView, SvgAsset, Bitmap> {
-
-    private static final long ANIM_DURATION_MILLIS = 250;
+public final class CrateSvgLoader extends AssetLoader<SvgHolder, SvgAsset, Bitmap> {
 
 
-    public CrateSvgLoader(@NonNull Crate crate) {
-        super(crate);
+    public CrateSvgLoader(@NonNull Crate crate, long loadDelayMillis) {
+        super(crate, loadDelayMillis);
     }
 
 
     @Override
-    protected void initialiseTarget(@NonNull CrateSvgView view, @NonNull SvgAsset asset) {
-        view.setBitmap(null);
-        view.setBitmapAlpha(0f);
-        view.setBitmapScale(0.3f, 0.3f);
+    protected void initialiseTarget(@NonNull SvgHolder holder, @NonNull SvgAsset asset) {
+        holder.initialise(asset);
     }
 
     @NonNull
     @Override
-    protected Result<Bitmap> load(@NonNull CrateSvgView view, @NonNull SvgAsset asset) {
-        boolean cached = mCrate.isSvgDrawableCached(asset);
+    protected Result<Bitmap> load(@NonNull SvgHolder holder, @NonNull SvgAsset asset) {
+        boolean cached = mCrate.isSvgCached(asset);
         return new Result<>(mCrate.getSvgBitmap(asset), asset, cached);
     }
 
     @Override
-    protected void apply(@NonNull CrateSvgView view, @NonNull Result<Bitmap> result) {
-        view.setBitmap(result.payload);
-        view.setTagColor(result.cached ? Color.GREEN : Color.RED);
-        view.animateBitmap()
-                .alpha(1f)
-                .scaleX(1f)
-                .scaleY(1f)
-                .setInterpolator(new OvershootInterpolator())
-                .setDuration(ANIM_DURATION_MILLIS);
+    protected void apply(@NonNull SvgHolder holder, @NonNull Result<Bitmap> result) {
+        holder.view.setBitmap(result.payload);
+        holder.view.setCached(result.cached);
+        holder.loaded = true;
+        holder.animateIfReady();
     }
 }

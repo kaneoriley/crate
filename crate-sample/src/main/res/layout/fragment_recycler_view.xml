@@ -15,14 +15,12 @@
   ~ limitations under the License.
   -->
 
-<me.oriley.cratesample.widget.CrateSvgView
+<me.oriley.cratesample.widget.CrateRecyclerView
         xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:id="@+id/recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_margin="8dp"
-        app:cardBackgroundColor="@color/svgCardColor"
-        app:cardElevation="2dp"
-        app:cardCornerRadius="@dimen/svg_card_corner_radius"
-        app:cardPreventCornerOverlap="false"
-        app:cardUseCompatPadding="true"/>
+        android:paddingLeft="@dimen/recycler_view_horizontal_padding"
+        android:paddingRight="@dimen/recycler_view_horizontal_padding"
+        android:clipChildren="false"
+        android:clipToPadding="false"/>

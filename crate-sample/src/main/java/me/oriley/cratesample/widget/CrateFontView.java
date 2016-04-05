@@ -18,25 +18,21 @@ package me.oriley.cratesample.widget;
 
 import android.content.Context;
 import android.graphics.Typeface;
-import android.support.annotation.ColorInt;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v7.widget.CardView;
 import android.util.AttributeSet;
-import android.view.View;
-import android.view.ViewPropertyAnimator;
+import android.view.animation.DecelerateInterpolator;
+import android.view.animation.OvershootInterpolator;
 import android.widget.TextView;
-import butterknife.Bind;
-import butterknife.ButterKnife;
+import me.oriley.crate.FontAsset;
 import me.oriley.cratesample.R;
 
-public class CrateFontView extends CardView {
+public class CrateFontView extends TaggedCardView<FontAsset> {
 
-    @Bind(R.id.text_view)
-    TextView mTextView;
+    private static final long ANIM_DURATION_MILLIS = 300;
 
-    @Bind(R.id.tag_view)
-    TagView mTagView;
+    @NonNull
+    private final TextView mTextView;
 
 
     public CrateFontView(@NonNull Context context) {
@@ -49,44 +45,46 @@ public class CrateFontView extends CardView {
 
     public CrateFontView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
-        View.inflate(context, R.layout.crate_font_view, this);
-        ButterKnife.bind(this);
+        inflate(R.layout.crate_font_view);
+        mTextView = (TextView) getItemView();
     }
 
 
-    @NonNull
-    public ViewPropertyAnimator animateText() {
-        return mTextView.animate();
+    @Override
+    public void animateCard() {
+        getAnimator()
+                .scaleX(1f)
+                .scaleY(1f)
+                .setInterpolator(new OvershootInterpolator(1.3f))
+                .setDuration(ANIM_DURATION_MILLIS);
+
+        getItemAnimator()
+                .alpha(1f)
+                .setInterpolator(new DecelerateInterpolator())
+                .setDuration(ANIM_DURATION_MILLIS);
+
     }
 
-    public void setText(@Nullable String text) {
-        mTextView.setText(text);
+    @Override
+    public void clearCardAnimation() {
+        clearAnimator();
+        clearItemAnimator();
+
+        mTextView.setAlpha(0f);
+        setScaleX(0.8f);
+        setScaleY(0.8f);
     }
 
-    public void setTextAlpha(float alpha) {
-        mTextView.setAlpha(alpha);
+    @Override
+    public void initialise(@Nullable FontAsset asset) {
+        super.initialise(asset);
+        if (asset != null) {
+            mTextView.setText(asset.getFontName());
+        }
+        clearCardAnimation();
     }
 
-    public void setTextRotation(float rotationX, float rotationY) {
-        mTextView.setRotationX(rotationX);
-        mTextView.setRotationY(rotationY);
-    }
-
-    public void setTextScale(float scaleX, float scaleY) {
-        mTextView.setScaleX(scaleX);
-        mTextView.setScaleY(scaleY);
-    }
-
-    public void setTextTranslation(float translationX, float translationY) {
-        mTextView.setTranslationX(translationX);
-        mTextView.setTranslationY(translationY);
-    }
-
-    public void setTextTypeface(@Nullable Typeface typeface) {
+    public void setTypeface(@Nullable Typeface typeface) {
         mTextView.setTypeface(typeface);
-    }
-
-    public void setTagColor(@ColorInt int color) {
-        mTagView.setTagColor(color);
     }
 }

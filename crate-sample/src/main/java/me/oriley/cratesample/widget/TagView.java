@@ -18,29 +18,39 @@ package me.oriley.cratesample.widget;
 
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Path;
-import android.support.annotation.ColorInt;
+import android.graphics.*;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.view.View;
 import me.oriley.cratesample.R;
 
 public class TagView extends View {
 
-    @NonNull
-    private final Paint mPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private static final int TAG_RED = 0xFFF44336;
+    private static final int TAG_GREEN = 0xFF4CAF50;
 
     @NonNull
-    private final Path mPath = new Path();
+    private final Paint mBitmapPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+    @NonNull
+    private final TextPaint mTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+
+    @NonNull
+    private final Point mTextPoint = new Point();
 
     private final int mTagSize;
 
-    @ColorInt
-    private int mTagColor = Color.TRANSPARENT;
+    private int mCount;
+
+    @NonNull
+    private String mCountText = String.valueOf(mCount);
+
+    @Nullable
+    private Bitmap mBitmap;
+
+    private boolean mCached;
 
 
     public TagView(@NonNull Context context) {
@@ -63,14 +73,23 @@ public class TagView extends View {
         }
 
         mTagSize = tagSize;
+        mTextPaint.setColor(Color.WHITE);
+        mTextPaint.setTextSize(mTagSize * 0.4f);
+        mTextPaint.setTextAlign(Paint.Align.CENTER);
+        updateBitmap();
     }
 
 
-    public void setTagColor(@ColorInt int color) {
-        if (mTagColor != color) {
-            mTagColor = color;
-            mPaint.setColor(mTagColor);
-            invalidate();
+    public void bumpCount() {
+        mCount++;
+        mCountText = String.valueOf(mCount);
+        invalidate();
+    }
+
+    public void setCached(boolean cached) {
+        if (mCached != cached) {
+            mCached = cached;
+            updateBitmap();
         }
     }
 
@@ -78,19 +97,43 @@ public class TagView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (w > 0 && h > 0) {
-            mPath.reset();
-            mPath.moveTo(w - mTagSize, 0);
-            mPath.lineTo(w, 0);
-            mPath.lineTo(w, mTagSize);
-            mPath.lineTo(w - mTagSize, 0);
-            mPath.close();
+            int radius = mTagSize / 2;
+            mTextPoint.x = w - radius;
+            mTextPoint.y = (int) (radius - (mTextPaint.descent() + mTextPaint.ascent()) / 2);
         }
     }
 
+    @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-        if (mTagColor != Color.TRANSPARENT && mTagSize > 0) {
-            canvas.drawPath(mPath, mPaint);
+        if (mTagSize > 0 && mBitmap != null && !mBitmap.isRecycled()) {
+            canvas.drawBitmap(mBitmap, canvas.getWidth() - mTagSize, 0, mBitmapPaint);
+            canvas.drawText(mCountText, mTextPoint.x, mTextPoint.y, mTextPaint);
         }
+    }
+
+    private void updateBitmap() {
+        if (mBitmap != null) {
+            mBitmap.recycle();
+            mBitmap = null;
+        }
+
+        int radius = mTagSize / 2;
+        RectF arcRect = new RectF(0, 0, mTagSize, mTagSize);
+        Path path = new Path();
+        path.reset();
+        path.moveTo(0, 0);
+        path.lineTo(0, radius);
+        path.arcTo(arcRect, -180, -90);
+        path.lineTo(mTagSize, mTagSize);
+        path.lineTo(mTagSize, 0);
+        path.close();
+
+        Paint tagPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        tagPaint.setColor(mCached ? TAG_GREEN : TAG_RED);
+        mBitmap = Bitmap.createBitmap(mTagSize, mTagSize, Bitmap.Config.ARGB_4444);
+        Canvas canvas = new Canvas(mBitmap);
+        canvas.drawPath(path, tagPaint);
+        invalidate();
     }
 }
