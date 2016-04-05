@@ -180,7 +180,7 @@ repositories {
 ```gradle
 buildscript {
     dependencies {
-        classpath 'me.oriley.crate:crate-plugin:0.4'
+        classpath 'me.oriley.crate:crate-plugin:0.4.1'
     }
 }
 ```
@@ -198,7 +198,7 @@ apply plugin: 'me.oriley.crate-plugin'
 ...
 
 dependencies {
-    compile 'me.oriley.crate:crate-runtime:0.4'
+    compile 'me.oriley.crate:crate-runtime:0.4.1'
 
     // Optional, only required if you plan to use the helper SVG parsing and caching methods
     compile 'com.caverock:androidsvg:1.2.1'

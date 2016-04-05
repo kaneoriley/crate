@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-## Version 0.4
+## Version 0.4.1
 
 _2016-04-05_
 
@@ -11,6 +11,7 @@ _2016-04-05_
  *  Improvement: Update cache handling and add max size settings to the builder
  *  Feature: Added `VideoAsset` type for supported media formats
  *  Feature: Add `crate-mediainfo` to read video attributes into asset for quick access
+ *  Fix JitPack build
 
 ## Version 0.3
 

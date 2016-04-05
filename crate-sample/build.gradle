@@ -6,7 +6,7 @@ buildscript {
     }
     dependencies {
         classpath 'com.android.tools.build:gradle:2.0.0-beta2'
-        classpath 'me.oriley.crate:crate-plugin:0.3'
+        classpath 'me.oriley.crate:crate-plugin:0.4.1'
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
     }
 }
@@ -30,8 +30,8 @@ android {
         applicationId "me.oriley.cratesample"
         minSdkVersion 16
         targetSdkVersion 23
-        versionCode 3
-        versionName "0.4"
+        versionCode 4
+        versionName "0.4.1"
     }
 
     buildTypes {
@@ -68,6 +68,6 @@ dependencies {
     apt 'com.jakewharton:butterknife-compiler:8.0.0-SNAPSHOT'
 
     // Crate - Runtime classes
-    compile 'me.oriley.crate:crate-runtime:0.3'
+    compile 'me.oriley.crate:crate-runtime:0.4.1'
     compile 'com.caverock:androidsvg:1.2.1'
 }
