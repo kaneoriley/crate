@@ -1,6 +1,23 @@
+/*
+ * Copyright (C) 2016 Kane O'Riley
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License")
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *  Unless required by applicable law or agreed to in writing, software
+ *  distributed under the License is distributed on an "AS IS" BASIS,
+ *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *  See the License for the specific language governing permissions and
+ *  limitations under the License.
+ */
+
 package me.oriley.crate;
 
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.graphics.*;
 import android.graphics.drawable.PictureDrawable;
@@ -11,11 +28,7 @@ import me.oriley.crate.CrateSvg.SvgParseException;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.RuntimeException;
-import java.lang.String;
-import java.lang.SuppressWarnings;
-import java.util.HashMap;
-import java.util.List;
+import java.util.zip.GZIPInputStream;
 
 @SuppressWarnings("unused")
 public final class Crate {
@@ -28,13 +41,13 @@ public final class Crate {
     private final boolean DEBUG;
 
     @NonNull
-    private final HashMap<String, Typeface> mTypefaceCache = new HashMap<>();
+    private final CrateCache<FontAsset, Typeface> mTypefaceCache;
 
     @NonNull
-    private final HashMap<String, Bitmap> mBitmapCache = new HashMap<>();
+    private final CrateCache<ImageAsset, Bitmap> mBitmapCache;
 
     @NonNull
-    private final HashMap<String, PictureDrawable> mSvgCache = new HashMap<>();
+    private final CrateCache<SvgAsset, Picture> mSvgCache;
 
     @NonNull
     private final CrateSvg.Parser mSvgParser = CrateSvg.getParser();
@@ -45,22 +58,16 @@ public final class Crate {
     @NonNull
     public final CrateDictionary.AssetsClass assets;
 
-    private final boolean mTypefaceCacheEnabled;
-
-    private final boolean mBitmapCacheEnabled;
-
-    private final boolean mSvgCacheEnabled;
-
     private Crate(@NonNull Context context,
-                  boolean typefaceCacheEnabled,
-                  boolean bitmapCacheEnabled,
-                  boolean svgCacheEnabled) {
+                  int typefaceCacheMaxSize,
+                  int bitmapCacheMaxSize,
+                  int svgCacheMaxSize) {
         mAssetManager = context.getApplicationContext().getAssets();
         mDictionary = new CrateDictionary();
 
-        mTypefaceCacheEnabled = typefaceCacheEnabled;
-        mBitmapCacheEnabled = bitmapCacheEnabled;
-        mSvgCacheEnabled = svgCacheEnabled;
+        mTypefaceCache = new CrateCache<>(typefaceCacheMaxSize, true);
+        mBitmapCache = new CrateCache<>(bitmapCacheMaxSize, true);
+        mSvgCache = new CrateCache<>(svgCacheMaxSize, true);
 
         // Ugly, but helps keep with desired code style
         assets = mDictionary.assets;
@@ -69,25 +76,34 @@ public final class Crate {
 
     @NonNull
     public InputStream open(@NonNull Asset asset) throws IOException {
-        return mAssetManager.open(asset.mPath);
+        return open(asset, AssetManager.ACCESS_STREAMING);
     }
 
     @NonNull
     public InputStream open(@NonNull Asset asset, int mode) throws IOException {
-        return mAssetManager.open(asset.mPath, mode);
+        InputStream stream = mAssetManager.open(asset.getPath(), mode);
+        if (asset.isGzipped()) {
+            stream = new GZIPInputStream(stream);
+        }
+        return stream;
+    }
+
+    @NonNull
+    public final AssetFileDescriptor openFd(@NonNull Asset asset) throws IOException {
+        return mAssetManager.openFd(asset.getPath());
     }
 
     @Nullable
     public Bitmap getBitmap(@NonNull ImageAsset imageAsset) {
         String key = imageAsset.mPath;
-        if (mBitmapCacheEnabled && mBitmapCache.containsKey(key)) {
-            Bitmap bitmap = mBitmapCache.get(key);
+        if (mBitmapCache.containsKey(imageAsset)) {
+            Bitmap bitmap = mBitmapCache.get(imageAsset);
             if (bitmap != null && !bitmap.isRecycled()) {
                 if (DEBUG) Log.d(TAG, "Using cached bitmap for key: " + key);
                 return bitmap;
             } else {
                 if (DEBUG) Log.d(TAG, "Ejecting recycled bitmap for key: " + key);
-                mBitmapCache.remove(key);
+                mBitmapCache.remove(imageAsset);
             }
         }
         Bitmap bitmap = null;
@@ -97,6 +113,7 @@ public final class Crate {
             try {
                 bitmap = BitmapFactory.decodeStream(stream);
             } finally {
+                //noinspection ThrowFromFinallyBlock
                 stream.close();
             }
         } catch (IOException e) {
@@ -105,14 +122,18 @@ public final class Crate {
         } finally {
             if (bitmap != null) {
                 if (DEBUG) Log.d(TAG, "Bitmap loaded for key: " + key);
-                cacheBitmap(key, bitmap);
+                cacheBitmap(imageAsset, bitmap);
             }
         }
         return bitmap;
     }
 
-    private void cacheBitmap(@NonNull String key, @NonNull Bitmap bitmap) {
-        if (mBitmapCacheEnabled) {
+    public boolean isBitmapCached(@NonNull ImageAsset key) {
+        return mBitmapCache.containsKey(key);
+    }
+
+    private void cacheBitmap(@NonNull ImageAsset key, @NonNull Bitmap bitmap) {
+        if (mBitmapCache.maxSize() > 0) {
             mBitmapCache.put(key, bitmap);
         }
     }
@@ -120,9 +141,9 @@ public final class Crate {
     @Nullable
     public Typeface getTypeface(@NonNull FontAsset fontAsset) {
         String key = fontAsset.mPath;
-        if (mTypefaceCacheEnabled && mTypefaceCache.containsKey(key)) {
+        if (mTypefaceCache.containsKey(fontAsset)) {
             if (DEBUG) Log.d(TAG, "Using cached typeface for key: " + key);
-            return mTypefaceCache.get(key);
+            return mTypefaceCache.get(fontAsset);
         }
         Typeface typeface = null;
         try {
@@ -133,74 +154,82 @@ public final class Crate {
         } finally {
             if (typeface != null) {
                 if (DEBUG) Log.d(TAG, "Typeface loaded for key: " + key);
-                cacheTypeface(key, typeface);
+                cacheTypeface(fontAsset, typeface);
             }
         }
         return typeface;
     }
 
-    private void cacheTypeface(@NonNull String key, @NonNull Typeface typeface) {
-        if (mTypefaceCacheEnabled) {
+    public boolean isTypefaceCached(@NonNull FontAsset key) {
+        return mTypefaceCache.containsKey(key);
+    }
+
+    private void cacheTypeface(@NonNull FontAsset key, @NonNull Typeface typeface) {
+        if (mTypefaceCache.maxSize() > 0) {
             mTypefaceCache.put(key, typeface);
         }
     }
 
     @Nullable
     public Bitmap getSvgBitmap(@NonNull SvgAsset svgAsset) {
-        return getSvgBitmap(svgAsset, 1f);
-    }
-
-    @Nullable
-    public Bitmap getSvgBitmap(@NonNull SvgAsset svgAsset, float scale) {
         String key = svgAsset.mPath;
-
-        PictureDrawable pictureDrawable = getSvgDrawable(svgAsset);
-        if (pictureDrawable == null) {
-            if (DEBUG) Log.d(TAG, "PictureDrawable is null for key: " + key);
+        Picture picture = getSvgPicture(svgAsset);
+        if (picture == null) {
+            if (DEBUG) Log.d(TAG, "Picture is null for key: " + key);
             return null;
         }
 
-        int desiredWidth = (int) (pictureDrawable.getIntrinsicWidth() * scale);
-        int desiredHeight = (int) (pictureDrawable.getIntrinsicHeight() * scale);
+        int desiredWidth = picture.getWidth();
+        int desiredHeight = picture.getHeight();
         Bitmap bitmap = Bitmap.createBitmap(desiredWidth, desiredHeight, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
-        canvas.drawPicture(pictureDrawable.getPicture(), new Rect(0, 0, desiredWidth, desiredHeight));
-
+        canvas.drawPicture(picture, new Rect(0, 0, desiredWidth, desiredHeight));
         return bitmap;
     }
 
     @Nullable
     public PictureDrawable getSvgDrawable(@NonNull SvgAsset svgAsset) {
+        Picture picture = getSvgPicture(svgAsset);
+        return picture != null ? new PictureDrawable(picture) : null;
+    }
+
+    @Nullable
+    public Picture getSvgPicture(@NonNull SvgAsset svgAsset) {
         String key = svgAsset.getPath();
-        if (mSvgCacheEnabled && mSvgCache.containsKey(key)) {
-            if (DEBUG) Log.d(TAG, "Using cached PictureDrawable for key: " + key);
-            return mSvgCache.get(key);
+        if (mSvgCache.containsKey(svgAsset)) {
+            if (DEBUG) Log.d(TAG, "Using cached Picture for key: " + key);
+            return mSvgCache.get(svgAsset);
         }
 
-        PictureDrawable drawable = null;
+        Picture picture = null;
         try {
             InputStream stream = open(svgAsset);
             //noinspection TryFinallyCanBeTryWithResources
             try {
-                drawable = mSvgParser.parseSvg(stream);
+                picture = mSvgParser.parseSvg(stream);
             } finally {
+                //noinspection ThrowFromFinallyBlock
                 stream.close();
             }
         } catch (IOException | SvgParseException e) {
             Log.e(TAG, "Failed to load SVG for key: " + key, e);
             e.printStackTrace();
         } finally {
-            if (drawable != null) {
+            if (picture != null) {
                 if (DEBUG) Log.d(TAG, "SVG loaded for key: " + key);
-                cachePictureDrawable(key, drawable);
+                cachePicture(svgAsset, picture);
             }
         }
-        return drawable;
+        return picture;
     }
 
-    private void cachePictureDrawable(@NonNull String key, @NonNull PictureDrawable drawable) {
-        if (mSvgCacheEnabled) {
-            mSvgCache.put(key, drawable);
+    public boolean isSvgCached(@NonNull SvgAsset key) {
+        return mSvgCache.containsKey(key);
+    }
+
+    private void cachePicture(@NonNull SvgAsset key, @NonNull Picture picture) {
+        if (mSvgCache.maxSize() > 0) {
+            mSvgCache.put(key, picture);
         }
     }
 
@@ -216,7 +245,7 @@ public final class Crate {
 
     public void clearTypefaceCache(@NonNull FontAsset... assets) {
         for (FontAsset asset : assets) {
-            mTypefaceCache.remove(asset.getPath());
+            mTypefaceCache.remove(asset);
         }
     }
 
@@ -229,7 +258,7 @@ public final class Crate {
 
     public void clearBitmapCache(@NonNull ImageAsset... assets) {
         for (ImageAsset asset : assets) {
-            mBitmapCache.remove(asset.getPath());
+            mBitmapCache.remove(asset);
         }
     }
 
@@ -239,7 +268,7 @@ public final class Crate {
 
     public void clearSvgCache(@NonNull SvgAsset... assets) {
         for (SvgAsset asset : assets) {
-            mSvgCache.remove(asset.getPath());
+            mSvgCache.remove(asset);
         }
     }
 
@@ -248,37 +277,37 @@ public final class Crate {
         @NonNull
         private Context mContext;
 
-        private boolean mTypefaceCacheEnabled;
+        private int mTypefaceCacheMaxSize;
 
-        private boolean mBitmapCacheEnabled;
+        private int mBitmapCacheMaxSize;
 
-        private boolean mSvgCacheEnabled;
+        private int mSvgCacheMaxSize;
 
         public Builder(@NonNull Context context) {
             mContext = context.getApplicationContext();
         }
 
         @NonNull
-        public Builder setTypefaceCacheEnabled(boolean enabled) {
-            mTypefaceCacheEnabled = enabled;
+        public Builder typefaceCacheMaxSize(int maxSize) {
+            mTypefaceCacheMaxSize = maxSize;
             return this;
         }
 
         @NonNull
-        public Builder setBitmapCacheEnabled(boolean enabled) {
-            mBitmapCacheEnabled = enabled;
+        public Builder bitmapCacheMaxSize(int maxSize) {
+            mBitmapCacheMaxSize = maxSize;
             return this;
         }
 
         @NonNull
-        public Builder setSvgCacheEnabled(boolean enabled) {
-            mSvgCacheEnabled = enabled;
+        public Builder svgCacheMaxSize(int maxSize) {
+            mSvgCacheMaxSize = maxSize;
             return this;
         }
 
         @NonNull
         public Crate build() {
-            return new Crate(mContext, mTypefaceCacheEnabled, mBitmapCacheEnabled, mSvgCacheEnabled);
+            return new Crate(mContext, mTypefaceCacheMaxSize, mBitmapCacheMaxSize, mSvgCacheMaxSize);
         }
     }
 }

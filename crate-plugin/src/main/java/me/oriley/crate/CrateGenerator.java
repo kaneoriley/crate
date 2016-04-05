@@ -23,6 +23,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
 import com.squareup.javapoet.*;
+import me.oriley.crate.mediainfo.CrateMediaInfo;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,16 +36,17 @@ import java.nio.file.Files;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
 
 import static java.util.Locale.US;
 import static javax.lang.model.element.Modifier.*;
-import static me.oriley.crate.utils.JavaPoetUtils.*;
 import static me.oriley.crate.utils.JavaPoetUtils.Nullability.NONNULL;
+import static me.oriley.crate.utils.JavaPoetUtils.*;
 
 public final class CrateGenerator {
 
     private enum FolderClass {
-        NONE, FONT, IMAGE, SVG, ASSET
+        NONE, FONT, IMAGE, VIDEO, SVG, ASSET
     }
 
     // Deprecated options
@@ -60,8 +62,12 @@ public final class CrateGenerator {
     private static final List<String> FONT_TYPES = Arrays.asList("application/x-font-otf", "application/x-font-ttf");
     private static final List<String> IMAGE_TYPES = Arrays.asList("image/jpeg", "image/png", "image/pjpeg", "image/gif", "image/bmp", "image/x-windows-bmp", "image/webp");
     private static final List<String> SVG_TYPES = Arrays.asList("image/svg+xml", "image/svg+xml-compressed");
+    private static final List<String> VIDEO_TYPES = Arrays.asList("video/3gpp", "video/mp4", "video/webm");
 
     private static final Logger log = LoggerFactory.getLogger(CrateGenerator.class.getSimpleName());
+
+    @NonNull
+    private final CrateMediaInfo mMediaInfo = new CrateMediaInfo();
 
     @NonNull
     private final String mBaseOutputDir;
@@ -71,13 +77,16 @@ public final class CrateGenerator {
 
     private final boolean mDebugLogging;
 
+
     public CrateGenerator(@NonNull String baseOutputDir,
                           @NonNull String variantAssetDir,
                           boolean debugLogging) {
         mBaseOutputDir = baseOutputDir;
         mVariantAssetDir = variantAssetDir;
         mDebugLogging = debugLogging;
+
         log("CrateGenerator constructed\n" +
+                "    MediaInfo Support: " + mMediaInfo.isAvailable() + "\n" +
                 "    Output: " + mBaseOutputDir + "\n" +
                 "    Asset: " + mVariantAssetDir + "\n" +
                 "    Package: " + PACKAGE_NAME + "\n" +
@@ -85,6 +94,7 @@ public final class CrateGenerator {
                 "    Static: " + STATIC_MODE + "\n" +
                 "    Logging: " + mDebugLogging);
     }
+
 
     public void buildCrate() {
         long startNanos = System.nanoTime();
@@ -233,13 +243,14 @@ public final class CrateGenerator {
                     contentType = "application/octet-stream";
                 }
 
+                boolean gzipped = isGzipped(file);
                 String filePath = file.getPath().replace(variantAssetDir + "/", "");
                 AssetHolder asset;
 
                 if (FONT_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.FONT);
                     String fontName = getFontName(file.getPath());
-                    asset = new FontAssetHolder(fieldName, filePath, fileName, fontName != null ? fontName : fileName);
+                    asset = new FontAssetHolder(fieldName, filePath, gzipped, fontName != null ? fontName : fileName);
                     builder.addField(createFontAssetField((FontAssetHolder) asset));
                 } else if (IMAGE_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.IMAGE);
@@ -255,15 +266,20 @@ public final class CrateGenerator {
                         logError("Error parsing image: " + file.getPath(), e, false);
                     }
 
-                    asset = new ImageAssetHolder(fieldName, filePath, fileName, width, height);
+                    asset = new ImageAssetHolder(fieldName, filePath, gzipped, width, height);
                     builder.addField(createImageAssetField((ImageAssetHolder) asset));
+                } else if (VIDEO_TYPES.contains(contentType)) {
+                    folderClass = checkFolderClass(folderClass, FolderClass.VIDEO);
+                    int[] dimens = mMediaInfo.getDimensions(file);
+                    asset = new VideoAssetHolder(fieldName, filePath, gzipped, dimens[0], dimens[1]);
+                    builder.addField(createVideoAssetField((VideoAssetHolder) asset));
                 } else if (SVG_TYPES.contains(contentType)) {
                     folderClass = checkFolderClass(folderClass, FolderClass.SVG);
-                    asset = new SvgAssetHolder(fieldName, filePath, fileName);
+                    asset = new SvgAssetHolder(fieldName, filePath, gzipped);
                     builder.addField(createSvgAssetField((SvgAssetHolder) asset));
                 } else {
                     folderClass = FolderClass.ASSET;
-                    asset = new AssetHolder(fieldName, filePath, fileName);
+                    asset = new AssetHolder(fieldName, filePath, gzipped);
                     builder.addField(createAssetField(asset));
                 }
                 assetMap.put(fieldName, asset);
@@ -309,9 +325,37 @@ public final class CrateGenerator {
                 return FontAsset.class;
             case IMAGE:
                 return ImageAsset.class;
+            case VIDEO:
+                return VideoAsset.class;
             case SVG:
                 return SvgAsset.class;
         }
+    }
+
+    private boolean isGzipped(@NonNull File file) {
+        try {
+            InputStream stream = new FileInputStream(file);
+            if (!stream.markSupported()) {
+                // We need a a buffered stream so we can use mark() and reset()
+                stream = new BufferedInputStream(stream);
+            }
+            //noinspection TryFinallyCanBeTryWithResources
+            try {
+                stream.mark(3);
+                int firstTwoBytes = stream.read() + (stream.read() << 8);
+                stream.reset();
+                if (firstTwoBytes == GZIPInputStream.GZIP_MAGIC) {
+                    return true;
+                }
+            } finally {
+                stream.close();
+            }
+        } catch (IOException e) {
+            logError("Failed to read input stream for " + file.getPath(), e, false);
+        }
+
+        // Something bad happened or file is not Gzipped
+        return false;
     }
 
     @Nullable
@@ -372,6 +416,14 @@ public final class CrateGenerator {
     @NonNull
     private FieldSpec createImageAssetField(@NonNull ImageAssetHolder asset) {
         FieldSpec.Builder builder = FieldSpec.builder(ImageAsset.class, asset.mFieldName)
+                .addModifiers(PUBLIC, FINAL);
+        asset.addInitialiser(builder);
+        return builder.build();
+    }
+
+    @NonNull
+    private FieldSpec createVideoAssetField(@NonNull VideoAssetHolder asset) {
+        FieldSpec.Builder builder = FieldSpec.builder(VideoAsset.class, asset.mFieldName)
                 .addModifiers(PUBLIC, FINAL);
         asset.addInitialiser(builder);
         return builder.build();
@@ -453,13 +505,13 @@ public final class CrateGenerator {
 
         private AssetHolder(@NonNull String fieldName,
                             @NonNull String path,
-                            @NonNull String name) {
-            super(path, name);
+                            boolean gzipped) {
+            super(path, gzipped);
             mFieldName = fieldName;
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $S)", Asset.class, mPath, mName);
+            builder.initializer("new $T($S, $L)", Asset.class, mPath, mGzipped);
         }
     }
 
@@ -471,14 +523,14 @@ public final class CrateGenerator {
 
         private FontAssetHolder(@NonNull String fieldName,
                                 @NonNull String path,
-                                @NonNull String name,
+                                boolean gzipped,
                                 @NonNull String fontName) {
-            super(fieldName, path, name);
+            super(fieldName, path, gzipped);
             mFontName = fontName;
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $S, $S)", FontAsset.class, mPath, mName, mFontName);
+            builder.initializer("new $T($S, $L, $S)", FontAsset.class, mPath, mGzipped, mFontName);
         }
     }
 
@@ -491,16 +543,38 @@ public final class CrateGenerator {
 
         private ImageAssetHolder(@NonNull String fieldName,
                                  @NonNull String path,
-                                 @NonNull String name,
+                                 boolean gzipped,
                                  int width,
                                  int height) {
-            super(fieldName, path, name);
+            super(fieldName, path, gzipped);
             mWidth = width;
             mHeight = height;
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $S, $L, $L)", ImageAsset.class, mPath, mName, mWidth, mHeight);
+            builder.initializer("new $T($S, $L, $L, $L)", ImageAsset.class, mPath, mGzipped, mWidth, mHeight);
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private static final class VideoAssetHolder extends AssetHolder {
+
+        final int mWidth;
+
+        final int mHeight;
+
+        private VideoAssetHolder(@NonNull String fieldName,
+                                 @NonNull String path,
+                                 boolean gzipped,
+                                 int width,
+                                 int height) {
+            super(fieldName, path, gzipped);
+            mWidth = width;
+            mHeight = height;
+        }
+
+        public void addInitialiser(@NonNull FieldSpec.Builder builder) {
+            builder.initializer("new $T($S, $L, $L, $L)", VideoAsset.class, mPath, mGzipped, mWidth, mHeight);
         }
     }
 
@@ -509,12 +583,12 @@ public final class CrateGenerator {
 
         private SvgAssetHolder(@NonNull String fieldName,
                                @NonNull String path,
-                               @NonNull String name) {
-            super(fieldName, path, name);
+                               boolean gzipped) {
+            super(fieldName, path, gzipped);
         }
 
         public void addInitialiser(@NonNull FieldSpec.Builder builder) {
-            builder.initializer("new $T($S, $S)", SvgAsset.class, mPath, mName);
+            builder.initializer("new $T($S, $L)", SvgAsset.class, mPath, mGzipped);
         }
     }
 }

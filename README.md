@@ -11,36 +11,54 @@ Included is a built-in caching mechanism for `Typeface`s, `Bitmap`s and `Picture
 
 No more string literals or typos, all your assets can be accessed with confidence!
 
-Each `Asset` has two methods, `asset.getPath()` will return the full path as required by an `AssetManager`, and
-`asset.getName()`, which will return the filename only.
-There are three subtypes of `Asset`, which contain extra information about the asset (calculated at compile time).
+Each `Asset` has the following methods:
+`getPath()`: Will return the full path as required by an `AssetManager`
+`getName()`: Returns just the file name of the asset
+`isGzipped()`: Returns whether the file is Gzip compressed (will be automatically handled by `Crate`)
+`asUri()`: Returns the file path formatted as a Uri string for consumption by external libraries
+
+There are four subtypes of `Asset`, which contain extra information about the asset (calculated at compile time).
 They are:
 
 * FontAsset
 
 Content Types: "application/x-font-otf", "application/x-font-ttf"
 
-Has an extra `fontAsset.getFontName()` method which returns the human readable name embedded in the font.
+Methods:
+`getFontName()`: Returns the human readable name embedded in the font.
 
 * ImageAsset
 
 Content Types: "image/jpeg", "image/png", "image/pjpeg", "image/gif", "image/bmp", "image/x-windows-bmp", "image/webp"
 
-Has two extra methods, `imageAsset.getWidth()` and `imageAsset.getHeight()`, which return the calculated width/height
-of the image.
+Methods:
+`getWidth()`: Returns the width of the image, as calculated at compile time.
+`getHeight()`: Returns the height of the image, as calculated at compile time.
 
 * SvgAsset
 
 Content Types: "image/svg+xml", "image/svg+xml-compressed"
 
-Purely for identification at the moment. Requires adding the `androidsvg` library as a depenency in your module (refer
-to Gradle setup explanation below).
+No extra methods. Requires adding the `androidsvg` library as a depenency in your module (refer to Gradle setup
+explanation below).
 * TODO: Read in some helpful SVG properties at compile time.
+
+* VideoAsset
+
+Content Types: "video/3gpp", "video/mp4", "video/webm"
+
+`getWidth()`: Returns the width of the video, as calculated at compile time by `MediaInfo`.
+`getHeight()`: Returns the height of the video, as calculated at compile time by `MediaInfo`.
+
+* NOTE: I have noticed `MediaInfo` can be a bit hit and miss, so if you have any issues (most likely all width and
+height values being invalid), feel free to let me know some details (operating system, IDE, Gradle/Java version etc)
+so I can look into it.
 
 ## Usage
 
-To construct the `Crate`, you will need to use the `Crate.Builder` class. Included are methods for turning on the
-individual caches. All caches default to off, so make sure to turn on any that you wish to use.
+To construct the `Crate`, you will need to use the `Crate.Builder` class. Included are methods for setting the max size
+of each cache (in number of objects cached). The default is 0, so you must call the builder methods and pass a positive
+value to have any caching take place.
 
 Note: I would not recommend using the `Bitmap` cache unless you know you have a small quantity of medium to low
 resolution images. For better caching performance of large assets, I'd advise looking into `Picasso` or `Glide` and
@@ -50,9 +68,9 @@ Example construction:
 ```java
 // In constructor/application
 mCrate = new Crate.Builder(this)
-                .setTypefaceCacheEnabled(true)
-                .setBitmapCacheEnabled(false)
-                .setSvgCacheEnabled(true)
+                .bitmapCacheMaxSize(20)
+                .typefaceCacheMaxSize(200)
+                .svgCacheMaxSize(2000)
                 .build();
 ```
 
@@ -162,7 +180,7 @@ repositories {
 ```gradle
 buildscript {
     dependencies {
-        classpath 'me.oriley.crate:crate-plugin:0.3'
+        classpath 'me.oriley.crate:crate-plugin:0.4'
     }
 }
 ```
@@ -180,7 +198,7 @@ apply plugin: 'me.oriley.crate-plugin'
 ...
 
 dependencies {
-    compile 'me.oriley.crate:crate-runtime:0.3'
+    compile 'me.oriley.crate:crate-runtime:0.4'
 
     // Optional, only required if you plan to use the helper SVG parsing and caching methods
     compile 'com.caverock:androidsvg:1.2.1'

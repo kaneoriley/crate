@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <color name="colorPrimary">#bb8a48</color>
     <color name="colorPrimaryDark">#845f3b</color>
     <color name="colorAccent">#cd9945</color>
+    <color name="colorAccentLight">#ffcc80</color>
+
+    <color name="navDrawerBackground">#FAFAFA</color>
+
+    <color name="fontCardColor">#FAFAFA</color>
+    <color name="bitmapCardColor">#363636</color>
+    <color name="svgCardColor">#E3E3E3</color>
+    <color name="videoForegroundColor">#131313</color>
+
 </resources>

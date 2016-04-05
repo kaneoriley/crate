@@ -2,19 +2,24 @@ buildscript {
     repositories {
         jcenter()
         maven { url "https://jitpack.io" }
+        mavenLocal()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.2.3'
-        classpath 'me.oriley.crate:crate-plugin:0.3'
+        classpath 'com.android.tools.build:gradle:2.0.0-beta2'
+        classpath 'me.oriley.crate:crate-plugin:0.4'
+        classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
     }
 }
 
 apply plugin: 'com.android.application'
 apply plugin: 'me.oriley.crate-plugin'
+apply plugin: 'com.neenbedankt.android-apt'
 
 repositories {
     jcenter()
     maven { url "https://jitpack.io" }
+    maven { url "https://oss.sonatype.org/content/repositories/snapshots" }
+    mavenLocal()
 }
 
 android {
@@ -24,10 +29,11 @@ android {
     defaultConfig {
         applicationId "me.oriley.cratesample"
         minSdkVersion 16
-        targetSdkVersion 22
-        versionCode 2
-        versionName "0.3"
+        targetSdkVersion 23
+        versionCode 3
+        versionName "0.4"
     }
+
     buildTypes {
         release {
             minifyEnabled false
@@ -46,12 +52,22 @@ crate {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:design:23.2.1'
 
-    // Simple async tasks
-    compile 'com.fabiendevos:nanotasks:1.1.0'
+    // Support libraries
+    compile 'com.android.support:design:23.2.1'
+    compile 'com.android.support:cardview-v7:23.2.1'
+    compile 'com.android.support:percent:23.2.1'
+    compile 'com.android.support:support-annotations:23.2.1'
+
+    // Lombok
+    provided 'org.projectlombok:lombok:1.16.8'
+    compile 'javax.annotation:javax.annotation-api:1.2'
+
+    // ButterKnife
+    compile 'com.jakewharton:butterknife:8.0.0-SNAPSHOT'
+    apt 'com.jakewharton:butterknife-compiler:8.0.0-SNAPSHOT'
 
     // Crate - Runtime classes
-    compile 'me.oriley.crate:crate-runtime:0.3'
+    compile 'me.oriley.crate:crate-runtime:0.4'
     compile 'com.caverock:androidsvg:1.2.1'
 }
