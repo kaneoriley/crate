@@ -1,5 +1,5 @@
 include ':crate-plugin', ':crate-common', ':crate-runtime', ':crate-dummy', ':crate-mediainfo'
 
-if (!"true".equals(System.getenv("TRAVIS"))) {
+if (!"true".equals(System.getenv("TRAVIS")) && !"true".equals(System.getenv("JITPACK"))) {
     include ':crate-sample'
 }
