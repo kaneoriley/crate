@@ -31,7 +31,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.widget.Toolbar;
 import android.view.MenuItem;
 import android.view.View;
-import butterknife.Bind;
+import butterknife.BindView;
 import me.oriley.cratesample.BuildConfig;
 import me.oriley.cratesample.R;
 import me.oriley.cratesample.fragments.*;
@@ -43,10 +43,10 @@ public class MainActivity extends BaseActivity implements OnNavigationItemSelect
 
     private static final String KEY_CURRENT_ITEM = "currentItem";
 
-    @Bind(R.id.nav_view)
+    @BindView(R.id.nav_view)
     NavigationView mNavigationView;
 
-    @Bind(R.id.drawer_layout)
+    @BindView(R.id.drawer_layout)
     DrawerLayout mDrawerLayout;
 
     @Nullable

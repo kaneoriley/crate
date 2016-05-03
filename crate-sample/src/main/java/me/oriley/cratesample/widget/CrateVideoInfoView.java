@@ -21,7 +21,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
 import android.widget.TextView;
-import butterknife.Bind;
+import butterknife.BindView;
 import me.oriley.crate.VideoAsset;
 import me.oriley.cratesample.R;
 
@@ -31,10 +31,10 @@ public class CrateVideoInfoView extends TaggedCardView<VideoAsset> {
 
     private static final String RESOLUTION_FORMAT = "%d x %d";
 
-    @Bind(R.id.crate_video_info_title)
+    @BindView(R.id.crate_video_info_title)
     TextView mTitleView;
 
-    @Bind(R.id.crate_video_info_resolution)
+    @BindView(R.id.crate_video_info_resolution)
     TextView mResolutionView;
 
     @Nullable

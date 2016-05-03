@@ -26,7 +26,7 @@ import android.support.v7.widget.CardView;
 import android.util.AttributeSet;
 import android.view.View;
 import android.view.ViewPropertyAnimator;
-import butterknife.Bind;
+import butterknife.BindView;
 import butterknife.ButterKnife;
 import me.oriley.crate.Asset;
 import me.oriley.cratesample.BuildConfig;
@@ -36,11 +36,11 @@ import me.oriley.cratesample.R;
 public abstract class TaggedCardView<T extends Asset> extends CardView {
 
     @Nullable
-    @Bind(R.id.tagged_card_tag)
+    @BindView(R.id.tagged_card_tag)
     TagView mTagView;
 
     @Nullable
-    @Bind(R.id.tagged_card_item)
+    @BindView(R.id.tagged_card_item)
     View mItemView;
 
     @Nullable

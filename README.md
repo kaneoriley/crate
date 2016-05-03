@@ -52,7 +52,9 @@ Content Types: "video/3gpp", "video/mp4", "video/webm"
 height values being invalid), feel free to let me know some details (operating system, IDE, Gradle/Java version etc)
 so I can look into it.
 
+
 ## Usage
+
 
 To construct the `Crate`, you will need to pass in a `Context`, but the `Application` context will automatically be
 retrieved so you don't have to worry about any `Activity` references being held on to.
@@ -85,10 +87,6 @@ Bitmap bitmap = mCrate.getBitmap(imageAsset);
 // Usage for PictureDrawable (SvgAsset)
 SvgAsset svgAsset = mCrate.assets.svgs.LOVE_VECTORS_SVG; // To open assets/svgs/love_vectors.svg
 PictureDrawable drawable = mCrate.getSvgDrawable(svgAsset);
-
-// When no longer required
-mCrate.clear();
-mCrate = null;
 ```
 
 If you don't want to use the helper methods in `Crate` to work with assets and would rather just take advantage of the
@@ -108,7 +106,7 @@ try {
 }
 ```
 Keep in mind that this will keep all `Asset` reference entries permanently in memory, so if possible use the `Crate`
-instance method and don't forget to `clear()` and `null` it when you're done ;-)
+instance method and don't forget to `null` it when you're done ;-)
 
 You can also retrieve a list of all `Asset`s in a directory via:
 ```java
@@ -127,7 +125,9 @@ The `LIST` field for each folder will be of type `List<? extends Asset>`. If all
 subtype (`FontAsset`, `ImageAsset` or `SvgAsset`), this concrete type will be used to remove the need for checking and casting.
 In all other cases, the root `Asset` type will be used.
 
+
 ## Gradle Dependency
+
 
  * Add JitPack.io to your repositories list in the root projects build.gradle:
 
@@ -146,10 +146,6 @@ buildscript {
     }
 }
 ```
-
-If you would like to run a newer version you can change the version number to `-SNAPSHOT` for the latest master
-branch, or a specific commit hash if you need an exact version. That's the beauty of JitPack. Just beware that API's
-can be subject to change without notice if you don't stick to a release version.
 
  * Apply the plugin to your application or library project, and add the module runtime dependency:
 
@@ -177,8 +173,10 @@ crate {
 
 Now just perform a gradle sync and you're done. You can now have compile time safety with all your projects assets.
 
-## Example
 
-TODO: Add Screenshots
+## Snapshot Builds
 
-Checkout the sample app to see what Crate can do for you!
+
+If you would like to check out the latest development version, please substitute all versions for `-SNAPSHOT`.
+Keep in mind that it is very likely things could break or be unfinished, so stick the official releases if you want
+things to be more predictable.

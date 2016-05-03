@@ -25,7 +25,7 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import butterknife.Bind;
+import butterknife.BindView;
 import me.oriley.crate.Crate;
 import me.oriley.cratesample.CrateApplication;
 import me.oriley.cratesample.R;
@@ -36,7 +36,7 @@ public abstract class RecyclerViewFragment extends BaseFragment {
 
     private static final String KEY_LAYOUT_MANAGER_STATE = "layoutManagerState";
 
-    @Bind(R.id.recycler_view)
+    @BindView(R.id.recycler_view)
     CrateRecyclerView mRecyclerView;
 
     @Nullable

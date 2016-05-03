@@ -38,8 +38,6 @@ public final class Crate {
     @NonNull
     private final AssetManager mAssetManager;
 
-    private final boolean DEBUG;
-
     @NonNull
     private final CrateSvg.Parser mSvgParser = CrateSvg.getParser();
 
@@ -48,6 +46,8 @@ public final class Crate {
 
     @NonNull
     public final CrateDictionary.AssetsClass assets;
+
+    private final boolean DEBUG;
 
 
     public Crate(@NonNull Context context) {
