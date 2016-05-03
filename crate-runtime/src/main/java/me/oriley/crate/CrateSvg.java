@@ -20,6 +20,8 @@ import android.graphics.Picture;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
+import com.caverock.androidsvg.SVG;
+import com.caverock.androidsvg.SVGParseException;
 
 import java.io.InputStream;
 
@@ -38,10 +40,36 @@ abstract class CrateSvg {
     static Parser getParser() {
         try {
             Class.forName(CAVEROCK_SVG_PARSER);
-            return new CrateSvgParserCaverock();
-        } catch (Exception e) {
-            Log.e(TAG, "Error retrieving SVG parser. Using dummy.", e);
-            return new CrateSvgParserDummy();
+            return new Parser() {
+                @Nullable
+                @Override
+                public Picture parseSvg(@Nullable InputStream stream) throws SvgParseException {
+                    if (stream == null) {
+                        return null;
+                    }
+
+                    Picture picture = null;
+                    try {
+                        SVG svg = SVG.getFromInputStream(stream);
+                        if (svg != null) {
+                            picture = svg.renderToPicture();
+                        }
+                    } catch (SVGParseException e) {
+                        throw new SvgParseException(e.getCause());
+                    }
+
+                    return picture;
+                }
+            };
+        } catch (Throwable t) {
+            Log.e(TAG, "Error retrieving SVG parser. Using dummy.", t);
+            return new Parser() {
+                @Nullable
+                @Override
+                public Picture parseSvg(@Nullable InputStream stream) throws SvgParseException {
+                    return null;
+                }
+            };
         }
     }
 
