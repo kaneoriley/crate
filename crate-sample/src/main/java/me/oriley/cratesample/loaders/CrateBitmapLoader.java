@@ -20,7 +20,6 @@ import android.graphics.Bitmap;
 import android.support.annotation.NonNull;
 import me.oriley.crate.Crate;
 import me.oriley.crate.ImageAsset;
-import me.oriley.crate.loader.AssetLoader;
 import me.oriley.cratesample.fragments.BitmapListFragment.BitmapHolder;
 
 @SuppressWarnings("unused")
@@ -28,20 +27,28 @@ public class CrateBitmapLoader extends AssetLoader<BitmapHolder, ImageAsset, Bit
 
 
     public CrateBitmapLoader(@NonNull Crate crate, long loadDelayMillis) {
-        super(crate, loadDelayMillis);
+        super(crate, loadDelayMillis, 4, true);
     }
 
 
     @Override
-    protected void initialiseTarget(@NonNull BitmapHolder holder, @NonNull ImageAsset asset) {
+    protected boolean initialiseTarget(@NonNull BitmapHolder holder, @NonNull ImageAsset asset) {
         holder.initialise(asset);
+        return true;
     }
 
     @NonNull
     @Override
     protected Result<Bitmap> load(@NonNull BitmapHolder holder, @NonNull ImageAsset asset) {
-        boolean cached = mCrate.isBitmapCached(asset);
-        return new Result<>(mCrate.getBitmap(asset), asset, cached);
+        boolean cached = mCache.containsKey(asset);
+        Bitmap bitmap = mCache.get(asset);
+        if (bitmap == null) {
+            bitmap = mCrate.getBitmap(asset);
+            if (bitmap != null) {
+                mCache.put(asset, bitmap);
+            }
+        }
+        return new Result<>(bitmap, asset, cached);
     }
 
     @Override

@@ -18,6 +18,7 @@ package me.oriley.cratesample.widget;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.drawable.PictureDrawable;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.AttributeSet;
@@ -48,6 +49,7 @@ public class CrateSvgView extends TaggedCardView<SvgAsset> {
         inflate(R.layout.crate_svg_view);
         mImageView = (ImageView) getItemView();
         setSquare(true);
+        setLayerType(LAYER_TYPE_SOFTWARE, null);
     }
 
 
@@ -82,7 +84,7 @@ public class CrateSvgView extends TaggedCardView<SvgAsset> {
         clearCardAnimation();
     }
 
-    public void setBitmap(@Nullable Bitmap bitmap) {
-        mImageView.setImageBitmap(bitmap);
+    public void setPictureDrawable(@Nullable PictureDrawable drawable) {
+        mImageView.setImageDrawable(drawable);
     }
 }

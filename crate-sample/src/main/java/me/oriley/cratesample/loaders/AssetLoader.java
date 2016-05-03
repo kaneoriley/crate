@@ -17,16 +17,25 @@
 package me.oriley.cratesample.loaders;
 
 import android.support.annotation.NonNull;
+import me.oriley.crate.Asset;
 import me.oriley.crate.Crate;
+import me.oriley.twiddle.TwiddleCache;
 import me.oriley.twiddle.TwiddleLoader;
 
-public abstract class AssetLoader extends TwiddleLoader {
+@SuppressWarnings("unused")
+public abstract class AssetLoader<T, A extends Asset, P> extends TwiddleLoader<T, A, P> {
 
     @NonNull
-    private final Crate mCrate;
+    protected final Crate mCrate;
+
+    @NonNull
+    protected final TwiddleCache<A, P> mCache;
 
 
-    public AssetLoader() {
-
+    public AssetLoader(@NonNull Crate crate, long loadDelayMillis, int maxCacheSize, boolean lruCache) {
+        super(loadDelayMillis);
+        mCrate = crate;
+        mCache = new TwiddleCache<>(maxCacheSize, lruCache);
     }
+
 }

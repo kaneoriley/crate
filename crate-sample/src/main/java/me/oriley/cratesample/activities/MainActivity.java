@@ -160,16 +160,16 @@ public class MainActivity extends BaseActivity implements OnNavigationItemSelect
     @Override
     public void onFragmentAnimationComplete() {
         if (mPendingRemoveFragment != null) {
-            removeFragment(mPendingRemoveFragment, FragmentHelper.FLAG_ANIM_NONE);
+            mFragmentHelper.removeFragment(mPendingRemoveFragment, FragmentHelper.FLAG_ANIM_NONE);
             mPendingRemoveFragment = null;
         }
     }
 
     protected void openDrawerFragment(@NonNull final Class<? extends BaseFragment> fragmentClass,
                                       @IdRes int menuId) {
-        Fragment fragment = getCurrentFragment();
+        Fragment fragment = mFragmentHelper.getCurrentFragment();
         if (fragment == null) {
-            addFragment(fragmentClass, FLAG_ANIM_NONE, false);
+            mFragmentHelper.addFragment(fragmentClass, FLAG_ANIM_NONE, false);
             return;
         }
 
@@ -182,14 +182,14 @@ public class MainActivity extends BaseActivity implements OnNavigationItemSelect
             mPendingRunnable = new Runnable() {
                 @Override
                 public void run() {
-                    mPendingRemoveFragment = getCurrentFragment();
-                    addFragment(fragmentClass, FLAG_ANIM_ALL, false);
+                    mPendingRemoveFragment = mFragmentHelper.getCurrentFragment();
+                    mFragmentHelper.addFragment(fragmentClass, FLAG_ANIM_ALL, false);
                 }
             };
             setIgnoreTouch(true);
             closeDrawer();
         } else {
-            addFragment(fragmentClass, FLAG_ANIM_ALL, false);
+            mFragmentHelper.addFragment(fragmentClass, FLAG_ANIM_ALL, false);
         }
 
         mCurrentItem = menuId;

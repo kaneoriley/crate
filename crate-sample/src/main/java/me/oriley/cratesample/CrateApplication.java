@@ -37,11 +37,7 @@ public class CrateApplication extends Application {
     @NonNull
     public static Crate getCrate() {
         if (sInstance.mCrate == null) {
-            sInstance.mCrate = new Crate.Builder(sInstance)
-                    .bitmapCacheMaxSize(20)
-                    .typefaceCacheMaxSize(200)
-                    .svgCacheMaxSize(2000)
-                    .build();
+            sInstance.mCrate = new Crate(sInstance);
         }
         return sInstance.mCrate;
     }

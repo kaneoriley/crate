@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Crate Sample</string>
+    <string name="developer_name" static="true">Kane O\'Riley</string>
+    <string name="developer_email" static="true">kane@oriley.me</string>
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>

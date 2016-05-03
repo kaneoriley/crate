@@ -4,9 +4,11 @@ buildscript {
         maven { url "https://jitpack.io" }
         mavenLocal()
     }
+
+    //noinspection GroovyAssignabilityCheck
     dependencies {
         classpath 'com.android.tools.build:gradle:2.1.0'
-        classpath 'me.oriley.crate:crate-plugin:0.4.1'
+        classpath 'me.oriley.crate:crate-plugin:0.5.0'
         classpath 'com.neenbedankt.gradle.plugins:android-apt:1.8'
     }
 }
@@ -23,16 +25,17 @@ repositories {
 
 android {
     compileSdkVersion 23
-    buildToolsVersion '23.0.2'
+    buildToolsVersion '23.0.3'
 
     defaultConfig {
         applicationId "me.oriley.cratesample"
         minSdkVersion 15
         targetSdkVersion 23
         versionCode 4
-        versionName "0.4.1"
+        versionName "0.5.0"
     }
 
+    //noinspection GroovyAssignabilityCheck
     buildTypes {
         release {
             minifyEnabled false
@@ -49,6 +52,7 @@ crate {
     debugLogging = true
 }
 
+//noinspection GroovyAssignabilityCheck
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
 
@@ -58,15 +62,14 @@ dependencies {
     compile 'com.android.support:percent:23.3.0'
     compile 'com.android.support:support-annotations:23.3.0'
 
-    // Lombok
-    provided 'org.projectlombok:lombok:1.16.8'
-    compile 'javax.annotation:javax.annotation-api:1.2'
-
     // ButterKnife
     compile 'com.jakewharton:butterknife:8.0.1'
     apt 'com.jakewharton:butterknife-compiler:8.0.1'
 
+    // Twiddle Cache/Lazy loader
+    compile 'me.oriley:twiddle:0.1.1'
+
     // Crate - Runtime classes
-    compile 'me.oriley.crate:crate-runtime:0.4.1'
+    compile 'me.oriley.crate:crate-runtime:0.5.0'
     compile 'com.caverock:androidsvg:1.2.1'
 }
