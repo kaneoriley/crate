@@ -1,6 +1,13 @@
 Change Log
 ==========
 
+## Version 0.5.0 WIP
+
+ * Removed asynchronous loaders and caching (it's outside of the scope of the library. Check out my other library
+   [Twiddle](https://github.com/oriley-me/twiddle) for that.
+ * Update dependencies
+ * Drop minimum SDK version to 15 (ICS)
+
 ## Version 0.4.1
 
 _2016-04-05_

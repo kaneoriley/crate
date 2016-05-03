@@ -14,31 +14,28 @@
  * limitations under the License.
  */
 
-package me.oriley.cratesample;
+package me.oriley.cratesample.loaders;
 
-import android.app.Application;
-import android.content.Context;
 import android.support.annotation.NonNull;
+import me.oriley.crate.Asset;
 import me.oriley.crate.Crate;
+import me.oriley.twiddle.TwiddleCache;
+import me.oriley.twiddle.TwiddleLoader;
 
-public class CrateApplication extends Application {
-
-    @NonNull
-    private static CrateApplication sInstance;
-
-    private Crate mCrate;
-
-    @Override
-    protected void attachBaseContext(Context base) {
-        super.attachBaseContext(base);
-        sInstance = this;
-    }
+@SuppressWarnings("unused")
+public abstract class AssetLoader<T, A extends Asset, P> extends TwiddleLoader<T, A, P> {
 
     @NonNull
-    public static Crate getCrate() {
-        if (sInstance.mCrate == null) {
-            sInstance.mCrate = new Crate(sInstance);
-        }
-        return sInstance.mCrate;
+    protected final Crate mCrate;
+
+    @NonNull
+    protected final TwiddleCache<A, P> mCache;
+
+
+    public AssetLoader(@NonNull Crate crate, long loadDelayMillis, int maxCacheSize, boolean lruCache) {
+        super(loadDelayMillis);
+        mCrate = crate;
+        mCache = new TwiddleCache<>(maxCacheSize, lruCache);
     }
+
 }

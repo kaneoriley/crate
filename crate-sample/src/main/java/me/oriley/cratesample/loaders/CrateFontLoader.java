@@ -20,7 +20,6 @@ import android.graphics.Typeface;
 import android.support.annotation.NonNull;
 import me.oriley.crate.Crate;
 import me.oriley.crate.FontAsset;
-import me.oriley.crate.loader.AssetLoader;
 import me.oriley.cratesample.fragments.FontListFragment.FontHolder;
 
 @SuppressWarnings("unused")
@@ -28,20 +27,28 @@ public final class CrateFontLoader extends AssetLoader<FontHolder, FontAsset, Ty
 
 
     public CrateFontLoader(@NonNull Crate crate, long loadDelayMillis) {
-        super(crate, loadDelayMillis);
+        super(crate, loadDelayMillis, 200, true);
     }
 
 
     @Override
-    protected void initialiseTarget(@NonNull FontHolder holder, @NonNull FontAsset asset) {
+    protected boolean initialiseTarget(@NonNull FontHolder holder, @NonNull FontAsset asset) {
         holder.initialise(asset);
+        return true;
     }
 
     @NonNull
     @Override
     protected Result<Typeface> load(@NonNull FontHolder holder, @NonNull FontAsset asset) {
-        boolean cached = mCrate.isTypefaceCached(asset);
-        return new Result<>(mCrate.getTypeface(asset), asset, cached);
+        boolean cached = mCache.containsKey(asset);
+        Typeface typeface = mCache.get(asset);
+        if (typeface == null) {
+            typeface = mCrate.getTypeface(asset);
+            if (typeface != null) {
+                mCache.put(asset, typeface);
+            }
+        }
+        return new Result<>(typeface, asset, cached);
     }
 
     @Override

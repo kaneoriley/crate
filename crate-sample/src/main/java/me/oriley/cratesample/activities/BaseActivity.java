@@ -22,15 +22,13 @@ import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import butterknife.ButterKnife;
-import lombok.experimental.Delegate;
 import me.oriley.cratesample.R;
 
 @SuppressWarnings("unused")
 public abstract class BaseActivity extends AppCompatActivity {
 
-    @Delegate
     @NonNull
-    private FragmentHelper mFragmentHelper;
+    protected FragmentHelper mFragmentHelper;
 
     private boolean mIgnoreTouch;
 

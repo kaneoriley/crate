@@ -10,5 +10,5 @@ dependencies {
     compile 'net.java.dev.jna:jna:4.2.2'
     compile 'net.java.dev.jna:jna-platform:4.2.2'
     compile 'com.google.code.findbugs:jsr305:3.0.1'
-    compile 'org.slf4j:log4j-over-slf4j:1.7.19'
+    compile 'org.slf4j:log4j-over-slf4j:1.7.21'
 }

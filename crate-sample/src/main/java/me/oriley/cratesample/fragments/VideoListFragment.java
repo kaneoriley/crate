@@ -34,7 +34,7 @@ import android.view.TextureView.SurfaceTextureListener;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
 import android.widget.FrameLayout;
-import butterknife.Bind;
+import butterknife.BindView;
 import me.oriley.crate.Crate;
 import me.oriley.crate.VideoAsset;
 import me.oriley.cratesample.R;
@@ -76,16 +76,16 @@ public class VideoListFragment extends RecyclerViewFragment {
     @NonNull
     private final ScheduledExecutorService mExecutorService = Executors.newScheduledThreadPool(1);
 
-    @Bind(R.id.progress_bar_container)
+    @BindView(R.id.progress_bar_container)
     FrameLayout mProgressBarContainer;
 
-    @Bind(R.id.card_view_container)
+    @BindView(R.id.card_view_container)
     FrameLayout mCardViewContainer;
 
-    @Bind(R.id.card_view)
+    @BindView(R.id.card_view)
     CardView mCardView;
 
-    @Bind(R.id.video_view)
+    @BindView(R.id.video_view)
     TextureView mTextureView;
 
     @NonNull

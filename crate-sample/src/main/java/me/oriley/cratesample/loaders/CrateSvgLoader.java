@@ -16,37 +16,44 @@
 
 package me.oriley.cratesample.loaders;
 
-import android.graphics.Bitmap;
+import android.graphics.drawable.PictureDrawable;
 import android.support.annotation.NonNull;
 import me.oriley.crate.Crate;
 import me.oriley.crate.SvgAsset;
-import me.oriley.crate.loader.AssetLoader;
 import me.oriley.cratesample.fragments.SvgListFragment.SvgHolder;
 
 @SuppressWarnings("unused")
-public final class CrateSvgLoader extends AssetLoader<SvgHolder, SvgAsset, Bitmap> {
+public final class CrateSvgLoader extends AssetLoader<SvgHolder, SvgAsset, PictureDrawable> {
 
 
     public CrateSvgLoader(@NonNull Crate crate, long loadDelayMillis) {
-        super(crate, loadDelayMillis);
+        super(crate, loadDelayMillis, 100, true);
     }
 
 
     @Override
-    protected void initialiseTarget(@NonNull SvgHolder holder, @NonNull SvgAsset asset) {
+    protected boolean initialiseTarget(@NonNull SvgHolder holder, @NonNull SvgAsset asset) {
         holder.initialise(asset);
+        return true;
     }
 
     @NonNull
     @Override
-    protected Result<Bitmap> load(@NonNull SvgHolder holder, @NonNull SvgAsset asset) {
-        boolean cached = mCrate.isSvgCached(asset);
-        return new Result<>(mCrate.getSvgBitmap(asset), asset, cached);
+    protected Result<PictureDrawable> load(@NonNull SvgHolder holder, @NonNull SvgAsset asset) {
+        boolean cached = mCache.containsKey(asset);
+        PictureDrawable drawable = mCache.get(asset);
+        if (drawable == null) {
+            drawable = mCrate.getSvgDrawable(asset);
+            if (drawable != null) {
+                mCache.put(asset, drawable);
+            }
+        }
+        return new Result<>(drawable, asset, cached);
     }
 
     @Override
-    protected void apply(@NonNull SvgHolder holder, @NonNull Result<Bitmap> result) {
-        holder.view.setBitmap(result.payload);
+    protected void apply(@NonNull SvgHolder holder, @NonNull Result<PictureDrawable> result) {
+        holder.view.setPictureDrawable(result.payload);
         holder.view.setCached(result.cached);
         holder.loaded = true;
         holder.animateIfReady();

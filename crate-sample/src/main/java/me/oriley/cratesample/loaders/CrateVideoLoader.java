@@ -21,7 +21,6 @@ import android.media.MediaPlayer;
 import android.support.annotation.NonNull;
 import me.oriley.crate.Crate;
 import me.oriley.crate.VideoAsset;
-import me.oriley.crate.loader.AssetLoader;
 import me.oriley.cratesample.fragments.VideoListFragment;
 
 import java.io.IOException;
@@ -30,13 +29,14 @@ public class CrateVideoLoader extends AssetLoader<VideoListFragment, VideoAsset,
 
 
     public CrateVideoLoader(@NonNull Crate crate, long loadDelayMillis) {
-        super(crate, loadDelayMillis);
+        super(crate, loadDelayMillis, 0, false);
     }
 
 
     @Override
-    protected void initialiseTarget(@NonNull VideoListFragment fragment, @NonNull VideoAsset asset) {
+    protected boolean initialiseTarget(@NonNull VideoListFragment fragment, @NonNull VideoAsset asset) {
         // TODO: Detach current media player?
+        return true;
     }
 
     @NonNull
