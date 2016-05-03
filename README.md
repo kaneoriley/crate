@@ -1,4 +1,9 @@
-[![Release](https://jitpack.io/v/com.github.oriley-me/crate.svg)](https://jitpack.io/#com.github.oriley-me/crate) [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0) [![Build Status](https://travis-ci.org/oriley-me/crate.svg?branch=master)](https://travis-ci.org/oriley-me/crate) [![Dependency Status](https://www.versioneye.com/user/projects/56e39ab7df573d00472cd399/badge.svg?style=flat)](https://www.versioneye.com/user/projects/56e39ab7df573d00472cd399)
+[![Release](https://jitpack.io/v/com.github.oriley-me/crate.svg)](https://jitpack.io/#com.github.oriley-me/crate)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0)
+[![Build Status](https://travis-ci.org/oriley-me/crate.svg?branch=master)](https://travis-ci.org/oriley-me/crate)
+[![Dependency Status](https://www.versioneye.com/user/projects/56e39ab7df573d00472cd399/badge.svg?style=flat)](https://www.versioneye.com/user/projects/56e39ab7df573d00472cd399)
+
+<a href="http://www.methodscount.com/?lib=me.oriley.crate%3Acrate-runtime%3A0.5.0"><img src="https://img.shields.io/badge/crate_runtime-methods: 76 | deps: 20 | size: 10 KB-f44336.svg"></img></a>  
 
 # Crate
 ![Logo](artwork/icon.png)
