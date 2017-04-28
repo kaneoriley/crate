@@ -24,7 +24,6 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Iterators;
 import com.squareup.javapoet.*;
 import me.oriley.crate.mediainfo.CrateMediaInfo;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,7 +144,7 @@ public final class CrateGenerator {
 
             for (String comment : comments) {
                 String fileLine = input.readLine();
-                if (fileLine == null || comment == null || !StringUtils.contains(fileLine, comment)) {
+                if (fileLine == null || comment == null || !fileLine.contains(comment)) {
                     log("Aborting, comment: " + comment + ", fileLine: " + fileLine);
                     isValid = false;
                     break;

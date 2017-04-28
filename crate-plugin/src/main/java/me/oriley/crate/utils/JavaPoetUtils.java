@@ -19,7 +19,6 @@ package me.oriley.crate.utils;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import com.squareup.javapoet.*;
-import org.apache.commons.lang.StringUtils;
 
 import javax.annotation.Nonnull;
 import javax.lang.model.element.Modifier;
@@ -80,7 +79,7 @@ public final class JavaPoetUtils {
 
     @NonNull
     public static String addPrefix(@NonNull String string, @NonNull String prefix) {
-        if (StringUtils.isEmpty(string) || string.startsWith(prefix)) {
+        if (string.length() <= 0 || string.startsWith(prefix)) {
             return string;
         } else {
             return prefix + capitalise(string);
@@ -89,7 +88,7 @@ public final class JavaPoetUtils {
 
     @NonNull
     public static String capitalise(@NonNull String string) {
-        if (StringUtils.isEmpty(string)) {
+        if (string.length() <= 0) {
             return "";
         } else {
             return string.substring(0, 1).toUpperCase() + string.substring(1);

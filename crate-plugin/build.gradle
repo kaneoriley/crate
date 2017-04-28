@@ -12,7 +12,7 @@ dependencies {
     compile localGroovy()
     compile project(':crate-common')
     compile project(':crate-mediainfo')
-    compile 'com.google.code.findbugs:jsr305:3.0.1'
-    compile 'com.squareup:javapoet:1.7.0'
-    compile 'commons-lang:commons-lang:2.6'
+    compile 'com.google.code.findbugs:jsr305:3.0.2'
+    compile 'com.google.guava:guava:19.0'
+    compile 'com.squareup:javapoet:1.8.0'
 }
