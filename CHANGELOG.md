@@ -1,7 +1,15 @@
 Change Log
 ==========
 
-## Version 0.5.0 WIP
+## Version 0.6.0 WIP
+
+ * Update MediaInfo libs to 0.7.93
+ * Update JNA libs to 4.4.0
+ * Add generated code to variant specific source set (fixes compilation when switching target)
+
+## Version 0.5.0
+
+_2016-05-03_
 
  * Removed asynchronous loaders and caching (it's outside of the scope of the library. Check out my other library
    [Twiddle](https://github.com/oriley-me/twiddle) for that.
