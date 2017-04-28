@@ -20,6 +20,6 @@ allprojects {
         mavenLocal()
     }
 
-    group = 'me.oriley.crate'
+    group = 'com.github.oriley-me.crate'
     version = 'LOCAL-SNAPSHOT'
 }
