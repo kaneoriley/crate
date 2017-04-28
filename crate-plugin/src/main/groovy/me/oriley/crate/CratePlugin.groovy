@@ -52,9 +52,9 @@ class CratePlugin implements Plugin<Project> {
                 String variantBuildDir = "${project.buildDir}/generated/source/crate/${variant.dirName}"
                 String variantAssetDir = "${project.buildDir}/intermediates/assets/${variant.dirName}"
 
-                // Add source to main sourceset
+                // Add source to variant source set
                 variant.sourceSets.each { sourceSet ->
-                    if (sourceSet.name == 'main') {
+                    if (sourceSet.name == variant.dirName) {
                         sourceSet.java.srcDir "${variantBuildDir}"
                     }
                 }
